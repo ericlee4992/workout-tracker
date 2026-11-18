@@ -19,6 +19,10 @@ struct ExerciseEntryCard: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showingRestSettings = false
     @State private var showingBarPicker = false
+    /// Machine settings 01 (D91): the My settings editor, and whether a finished workout already used this machine for
+    /// this exercise (nil until known; the first-use chip shows only on a known false).
+    @State private var showingMySettings = false
+    @State private var mySettingsUsedBefore: Bool?
 
     private var session: WorkoutSession { WorkoutSession(context: modelContext) }
 
@@ -50,8 +54,7 @@ struct ExerciseEntryCard: View {
                     .font(look.font.subhead).foregroundStyle(look.textSecondary)
             }
             machineRow
-            // PROTOTYPE (machine-settings 01): My settings, in memory only (`MySettingsPrototype.swift`).
-            if MySettingsPrototype.isEnabled { mySettingsPrototypeSlot }
+            mySettingsRow
             barRow
 
             if loadType == .assisted {
@@ -92,7 +95,19 @@ struct ExerciseEntryCard: View {
         .padding(.top, 12)
         .padding(.bottom, 14)
         .lookSurface(.panel)
-        .mySettingsPrototypeCardSheet(entry) // PROTOTYPE (machine-settings 01)
+        .task(id: mySettingsKey) { checkMySettingsHistory() }
+        .sheet(isPresented: $showingMySettings) {
+            if let machine = mySettingsMachine, let exercise = entry.exercise {
+                MySettingsSheet(
+                    machineLabel: machine.label, exerciseName: exercise.name,
+                    initialNote: MachineSettings.note(on: machine, exerciseID: exercise.id) ?? ""
+                ) { text in
+                    try MachineSettings(context: modelContext).save(text, on: machine, exerciseID: exercise.id)
+                }
+                .presentationDetents([.medium, .large])
+                .floodlightSheet(from: look)
+            }
+        }
         .sheet(isPresented: $showingRestSettings) {
             Group {
                 if let exercise = entry.exercise {
@@ -292,10 +307,10 @@ struct ExerciseEntryCard: View {
                         showingRestSettings = true
                     }
                 }
-                // PROTOTYPE (machine-settings 01): only when the entry has a machine.
-                if MySettingsPrototype.isEnabled, !entry.isDeleted, entry.machine != nil, entry.exercise != nil {
+                // D91: only when the entry has a machine (a note belongs to a machine × exercise).
+                if mySettingsMachine != nil, entry.exercise != nil {
                     Button(MySettingsCopy.menuItem, systemImage: "slider.horizontal.3") {
-                        MySettingsPrototype.shared.cardEditingEntryID = entry.id
+                        showingMySettings = true
                     }
                     .accessibilityIdentifier("mySettings.menuItem")
                 }
@@ -320,6 +335,41 @@ struct ExerciseEntryCard: View {
             }
             .accessibilityLabel("Exercise options")
         }
+    }
+
+    // MARK: My settings (machine settings 01, D91)
+
+    /// The machine the note belongs to: the entry's machine (live, as the equipment row shows it).
+    private var mySettingsMachine: MachineInstance? {
+        guard !entry.isDeleted, let machine = entry.machine, !machine.isDeleted else { return nil }
+        return machine
+    }
+
+    /// Under the machine: the note in full; the first-use chip; or nothing.
+    @ViewBuilder
+    private var mySettingsRow: some View {
+        if let note = MachineSettings.note(on: mySettingsMachine, exerciseID: entry.isDeleted ? nil : entry.exercise?.id) {
+            MySettingsCardLine(note: note) { showingMySettings = true }
+        } else if mySettingsMachine != nil, entry.exercise != nil, mySettingsUsedBefore == false {
+            MySettingsAddChip { showingMySettings = true }
+        }
+    }
+
+    /// Re-checks the history when the machine or exercise changes.
+    private var mySettingsKey: String? {
+        guard let machine = mySettingsMachine, let exercise = entry.exercise else { return nil }
+        return "\(machine.id)|\(exercise.id)"
+    }
+
+    /// One fetch per machine × exercise, not per render. A failed fetch hides the chip (an unknown is not "never used":
+    /// the chip is an offer, and the "⋯" menu still opens the editor).
+    private func checkMySettingsHistory() {
+        guard let machine = mySettingsMachine, let exercise = entry.exercise else {
+            mySettingsUsedBefore = nil
+            return
+        }
+        mySettingsUsedBefore = (try? MachineSettings(context: modelContext)
+            .hasFinishedHistory(machineID: machine.id, exerciseID: exercise.id)) ?? true
     }
 
     /// The equipment row: the machine (weight-stack glyph) or free weight, with the model under it.

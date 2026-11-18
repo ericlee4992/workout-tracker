@@ -243,7 +243,7 @@ struct GeneratedGoalsTests {
         _ = try commitGenerated(context)
         let collector = ExportCollector(dateFormat: ExportDateFormat(timeZone: calendar.timeZone), appVersion: "test")
         let snapshot = try collector.snapshot(from: context)
-        #expect(snapshot.schemaVersion == 14 && snapshot.nutritionGoals?.first?.generated == true)
+        #expect(snapshot.schemaVersion == 15 && snapshot.nutritionGoals?.first?.generated == true)
         #expect(try ExportJSON.decode(try ExportJSON.data(snapshot)) == snapshot)
 
         let plain = try self.context()

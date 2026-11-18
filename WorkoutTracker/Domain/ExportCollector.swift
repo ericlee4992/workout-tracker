@@ -48,6 +48,8 @@ struct ExportCollector {
         let savedMeals = try context.fetch(FetchDescriptor<SavedMeal>())
         let nutritionGoals = try context.fetch(FetchDescriptor<NutritionGoal>())
         let bodyWeights = try context.fetch(FetchDescriptor<BodyWeightEntry>())
+        // Machine settings 01 (v15).
+        let settingsNotes = try context.fetch(FetchDescriptor<MachineSettingsNote>())
         let preferences = AppPreferences.canonical(
             of: try context.fetch(FetchDescriptor<AppPreferences>()))
 
@@ -66,7 +68,7 @@ struct ExportCollector {
         let referenced = referencedCatalogIDs(
             machines: machines, workouts: exportedWorkouts,
             templates: templates, memories: memories, overrides: overrides,
-            presets: presets, models: models,
+            settingsNotes: settingsNotes, presets: presets, models: models,
             userExerciseIDs: Set(exercises.lazy.filter { !$0.isSeeded }.map(\.id)))
 
         // A seeded row the user has CORRECTED is user-authored data, not
@@ -117,7 +119,8 @@ struct ExportCollector {
                 foodEntries: foodEntries.count,
                 savedFoods: savedFoods.count,
                 savedMeals: savedMeals.count,
-                bodyWeights: bodyWeights.count),
+                bodyWeights: bodyWeights.count,
+                machineSettings: settingsNotes.count),
             preferences: preferences.map(self.preferences(from:)),
             gyms: exportedGyms,
             presets: presets
@@ -155,7 +158,10 @@ struct ExportCollector {
                 .map(nutritionGoal(from:)),
             bodyWeights: bodyWeights
                 .sorted { ($0.measuredAt, $0.id.uuidString) < ($1.measuredAt, $1.id.uuidString) }
-                .map(bodyWeight(from:)))
+                .map(bodyWeight(from:)),
+            machineSettings: settingsNotes
+                .sorted { ($0.updatedAt, $0.id.uuidString) < ($1.updatedAt, $1.id.uuidString) }
+                .map(machineSettings(from:)))
     }
 
     // MARK: Nutrition (v12, N2)
@@ -248,6 +254,7 @@ struct ExportCollector {
         templates: [WorkoutTemplate],
         memories: [GymExerciseMemory],
         overrides: [ExerciseRestOverride],
+        settingsNotes: [MachineSettingsNote],
         presets: [ExercisePreset],
         models: [EquipmentModel],
         userExerciseIDs: Set<UUID>
@@ -286,6 +293,8 @@ struct ExportCollector {
         }
         for memory in memories { referenced.exerciseIDs.insert(memory.exerciseID) }
         for override in overrides { referenced.exerciseIDs.insert(override.exerciseID) }
+        // A "My settings" note names its exercise; the exercise exports with it, or a restored note points at nothing.
+        for note in settingsNotes { referenced.exerciseIDs.insert(note.exerciseID) }
         return referenced
     }
 
@@ -520,6 +529,12 @@ struct ExportCollector {
             id: memory.id, gymID: memory.gymID, exerciseID: memory.exerciseID,
             machineID: memory.machineID,
             updatedAt: dateFormat.string(from: memory.updatedAt))
+    }
+
+    private func machineSettings(from note: MachineSettingsNote) -> ExportSnapshot.MachineSettingsRow {
+        ExportSnapshot.MachineSettingsRow(
+            id: note.id, machineID: note.machine?.id, exerciseID: note.exerciseID, text: note.text,
+            updatedAt: dateFormat.string(from: note.updatedAt))
     }
 
     private func restOverride(from override: ExerciseRestOverride) -> ExportSnapshot.RestOverride {

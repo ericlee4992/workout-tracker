@@ -27,6 +27,7 @@ struct MachineDetailView: View {
     @State private var modelManufacturer = ""
     @State private var modelName = ""
     @State private var savedTick = 0
+    @State private var editingSettings: Exercise?
     @FocusState private var nameFocused: Bool
 
     var body: some View {
@@ -48,7 +49,6 @@ struct MachineDetailView: View {
             .padding(.bottom, 40)
         }
         .scrollDismissesKeyboard(.interactively)
-        .mySettingsPrototypeCaptureScroll() // PROTOTYPE (machine-settings 01)
         .lookScreenBackground()
         .onScrollGeometryChange(for: Bool.self) { geo in
             geo.contentOffset.y + geo.contentInsets.top > 56
@@ -78,7 +78,16 @@ struct MachineDetailView: View {
             MachineModelCorrectionSheet(machine: machine)
         }
         .renameModelAlert($renamingModel, manufacturer: $modelManufacturer, modelName: $modelName)
-        .mySettingsPrototypePageSheet() // PROTOTYPE (machine-settings 01)
+        // Machine settings 01 (D91): one exercise's My settings.
+        .sheet(item: $editingSettings) { exercise in
+            MySettingsSheet(
+                machineLabel: machine.label, exerciseName: exercise.name,
+                initialNote: MachineSettings.note(on: machine, exerciseID: exercise.id) ?? ""
+            ) { text in
+                try MachineSettings(context: modelContext).save(text, on: machine, exerciseID: exercise.id)
+            }
+            .presentationDetents([.medium, .large])
+        }
     }
 
     // MARK: Hero
@@ -298,8 +307,15 @@ struct MachineDetailView: View {
                     .padding(.vertical, 12)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                // PROTOTYPE (machine-settings 01): a My settings row per exercise served, in memory only.
-                if MySettingsPrototype.isEnabled { MySettingsPrototypeRows(machine: machine) }
+                // Machine settings 01 (D91): a My settings row per exercise — the exercise's name on a station.
+                let settingsExercises = mySettingsExercises
+                ForEach(settingsExercises) { exercise in
+                    MySettingsMachineRow(
+                        exerciseName: settingsExercises.count > 1 ? exercise.name : nil,
+                        note: MachineSettings.note(on: machine, exerciseID: exercise.id)) {
+                        editingSettings = exercise
+                    }
+                }
             }
         }
     }
@@ -358,11 +374,28 @@ struct MachineDetailView: View {
         (exercise.presets ?? []).sorted { ($0.order, $0.name) < ($1.order, $1.name) }
     }
 
+    /// The exercises served, then any other exercise this machine has a note for (a machine with no model can be used
+    /// for a movement it does not list) — a saved note is never hidden.
+    private var mySettingsExercises: [Exercise] {
+        let served = servedExercises
+        let servedIDs = Set(served.map(\.id))
+        let noted = Set((machine.settingsNotes ?? []).compactMap { note -> UUID? in
+            guard !note.isDeleted, !servedIDs.contains(note.exerciseID),
+                  MachineSettings.note(on: machine, exerciseID: note.exerciseID) != nil else { return nil }
+            return note.exerciseID
+        })
+        return served + exercises.filter { noted.contains($0.id) }
+    }
+
+    private var servedExercises: [Exercise] {
+        machine.supportedExerciseIDs.compactMap { id in exercises.first { $0.id == id } }
+    }
+
     // MARK: Exercises served
 
     @ViewBuilder
     private var exercisesSection: some View {
-        let served = machine.supportedExerciseIDs.compactMap { id in exercises.first { $0.id == id } }
+        let served = servedExercises
         if !served.isEmpty {
             VStack(alignment: .leading, spacing: look.space.header) {
                 SectionHeader("Exercises")

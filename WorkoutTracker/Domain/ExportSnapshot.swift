@@ -61,7 +61,10 @@ struct ExportSnapshot: Codable, Equatable {
     /// 13 — nutrition N13: `nutritionGoals[]` gain `desiredWeightValue`, `desiredWeightUnit`, `desiredWeightKg` and
     /// `paceKgPerWeek` (the goal setup), each omitted when absent, so a v12 file still decodes.
     /// 14 — nutrition N14: `nutritionGoals[].generated` (true only; omitted otherwise), so a v13 file still decodes.
-    static let currentSchemaVersion = 14
+    /// 15 — machine settings 01 (D91): `machineSettings` (the "My settings" notes: machine, exercise, text, when) and
+    /// its count. Optional, so a v14 file still decodes. JSON only: a note is current, not history, so the CSV ledger of
+    /// sets has no place for it.
+    static let currentSchemaVersion = 15
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -90,6 +93,8 @@ struct ExportSnapshot: Codable, Equatable {
     var savedMeals: [SavedMealRow]?
     var nutritionGoals: [NutritionGoalRow]?
     var bodyWeights: [BodyWeightRow]?
+    // Machine settings 01 (v15).
+    var machineSettings: [MachineSettingsRow]?
 }
 
 // MARK: - Counts
@@ -114,6 +119,7 @@ extension ExportSnapshot {
         var savedFoods: Int? = nil
         var savedMeals: Int? = nil
         var bodyWeights: Int? = nil
+        var machineSettings: Int? = nil
     }
 }
 
@@ -175,6 +181,15 @@ extension ExportSnapshot {
         var defaultPresetID: UUID?
         var archived: Bool
         var recognizedExerciseIDs: [UUID]? = nil
+    }
+
+    /// A "My settings" note (D91): one machine × one exercise. A blank `text` is a cleared note, exported as stored.
+    struct MachineSettingsRow: Codable, Equatable {
+        var id: UUID
+        var machineID: UUID?
+        var exerciseID: UUID
+        var text: String
+        var updatedAt: String
     }
 
     /// A named variation of an exercise (D36–D38).

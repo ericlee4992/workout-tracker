@@ -59,7 +59,15 @@ struct StoreFormatGuardTests {
 
     /// **N14 (D85; the user 2026-11-12, AI-generated goals):** `NutritionGoal` gains `generated` (Bool, default false) —
     /// additive; `GeneratedGoalsMigrationTests` opens build 11's format with it, behind N1's safety copy.
-    static let approvedFingerprint = "9d83c2037f51078e1ea1a5bf792852683747935e89990d8f2beb6698dd597e6c"
+    /// **Shipped in 0.2.0 (12) and unchanged through (16)** — the format on testers' phones now
+    /// (`MachineSettingsMigrationTests` opens a fixture in it, `Fixtures/Build16.store`).
+    static let build16Fingerprint = "9d83c2037f51078e1ea1a5bf792852683747935e89990d8f2beb6698dd597e6c"
+
+    /// **Machine settings 01 (D91; the user 2026-11-17 approved the prototype: "looks good. get started"):** the new
+    /// `MachineSettingsNote` (owned by `MachineInstance`, cascade) and `MachineInstance.settingsNotes` — additive;
+    /// `MachineSettingsMigrationTests` opens build 16's format with it, behind N1's safety copy. Gate S before the phone
+    /// installs the build that carries it.
+    static let approvedFingerprint = "016aa14c5d14bc707a3b7019c7c692484efd1560fd9889908774c9a8bd53c06b"
 
     static func fingerprint(of types: [any PersistentModel.Type] = WorkoutTrackerStore.modelTypes) throws -> String {
         let model = try #require(NSManagedObjectModel.makeManagedObjectModel(for: types))

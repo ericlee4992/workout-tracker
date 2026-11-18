@@ -187,6 +187,9 @@ final class MachineInstance {
     var model: EquipmentModel?
     @Relationship(deleteRule: .nullify, inverse: \ExerciseEntry.machine)
     var entries: [ExerciseEntry]?
+    /// Machine settings 01 (D91): the user's "My settings" notes, one per exercise. Owned: they go with the machine.
+    @Relationship(deleteRule: .cascade, inverse: \MachineSettingsNote.machine)
+    var settingsNotes: [MachineSettingsNote]?
 
     init(
         id: UUID = UUID(),
@@ -884,6 +887,8 @@ enum WorkoutTrackerStore {
         SavedMealItem.self,
         NutritionGoal.self,
         BodyWeightEntry.self,
+        // Machine settings 01 (D91, MachineSettings.swift).
+        MachineSettingsNote.self,
     ]
 
     static var schema: Schema { Schema(modelTypes) }

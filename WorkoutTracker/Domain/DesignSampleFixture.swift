@@ -51,6 +51,14 @@ enum DesignSampleFixture {
     /// two machines — Chest Press 2 at Iron Temple 22 days ago, and the same model, "Chest Press", at Hotel Gym
     /// (New York) 20 and 16 days ago, heavier — so the chart's selector lists both machines and All machines.
     static let machinesArgument = "-uiTestDesignMachines"
+    /// With `-uiTestDesignLive -uiTestDesignGyms` too (machine settings 01, D91): "My settings" notes on Chest Press 2
+    /// (chest press) and the Cable Station (pushdown, crossover), and a new Shoulder Press machine on the live Machine
+    /// Shoulder Press card — never used before, so it offers "Add My Settings". The Incline Press keeps its history
+    /// and no note.
+    static let mySettingsArgument = "-uiTestDesignMySettings"
+    static var mySettingsIsEnabled: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains(mySettingsArgument)
+    }
     static var machinesIsEnabled: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains(machinesArgument)
     }
@@ -299,6 +307,9 @@ enum DesignSampleFixture {
         }
         if liveIsEnabled, let push = byName["Push Day"] {
             try startLive(push, at: gym, now: now, in: context)
+            if launchVariants && mySettingsIsEnabled && gymsIsEnabled {
+                try addMySettings(at: gym, machines: machineFor, models: models, exercise: exercise, now: now, in: context)
+            }
             if let bench = barBest, let live = try context.fetch(
                 FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt == nil })).first {
                 try logBench(bench, perSide: "28.75", into: live, at: gym, on: now.addingTimeInterval(-60), in: context)
@@ -464,6 +475,29 @@ enum DesignSampleFixture {
         try session.toggleCompletion(of: set, at: date)
         if workout == nil { try session.finish(target, at: date.addingTimeInterval(300)) }
         try context.save()
+    }
+
+    /// The My settings captures' notes and first-use machine (`-uiTestDesignMySettings`).
+    private static func addMySettings(at gym: Gym, machines: [String: MachineInstance], models: [EquipmentModel],
+                                      exercise: (String) -> Exercise?, now: Date, in context: ModelContext) throws {
+        let shoulder = MachineInstance(
+            label: "Shoulder Press", gym: gym,
+            model: models.first { $0.manufacturer == "Life Fitness" && $0.modelName == "Insignia Series Shoulder Press" })
+        context.insert(shoulder)
+        if let live = try context.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt == nil })).first,
+           let entry = WorkoutSession.orderedEntries(of: live).first(where: { $0.exercise?.name == "Machine Shoulder Press" }) {
+            try WorkoutSession(context: context).chooseEquipment(for: entry, machine: shoulder, freeWeightTag: nil)
+        }
+        let notes: [(machine: String, exercise: String, text: String)] = [
+            ("Seated Chest Press", "Seated Chest Press", "Seat 4 · back pad 2 · handles at the second notch"),
+            ("Triceps Pushdown", "Triceps Pushdown", "Rope · pulley at the top · hurt my elbow at 4, stay at 3"),
+            ("Triceps Pushdown", "Cable Crossover", "Both pulleys at 6 · one step forward"),
+        ]
+        let settings = MachineSettings(context: context)
+        for note in notes {
+            guard let machine = machines[note.machine], let lift = exercise(note.exercise) else { continue }
+            try settings.save(note.text, on: machine, exerciseID: lift.id, at: now.addingTimeInterval(-3_600))
+        }
     }
 
     /// Push Day, 18 minutes in: the chest press's first two sets logged (the second a new best),

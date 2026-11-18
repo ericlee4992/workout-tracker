@@ -38,7 +38,8 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
 - **Gyms and machines.** Each gym has its own machines. Add a gym from Train's gym menu (or
   "Add Your Gym…" before you have one) or from Gyms. Give a machine its model from a seeded
   catalog of 1,877 equipment models from 23 manufacturers, or, signed in, let Scan Machine
-  identify it from a photo.
+  identify it from a photo. **My settings** keeps your own note per machine and exercise — seat 4, pins
+  at 2, "hurt my elbow at 4" — on the workout card under the machine, editable there or on the machine's page.
 - **Fast logging.** Set rows arrive prefilled from your last session on that machine;
   confirming an untouched row is one tap. Add Exercise picks by name or by the gym's machines (a
   machine fills in its exercise). Weights keep the unit you entered, kg or lb, and

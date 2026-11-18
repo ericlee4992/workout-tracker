@@ -136,7 +136,7 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
   resizability advice only when a ticket asks. Keep each relationship's delete rule in
   `Domain/Models.swift` and `Domain/Nutrition.swift`: catalog and context links into history (exercise, preset,
   machine, gym; a saved food behind an entry or a meal item) `.nullify`, so history survives; owned rows (workout →
-  entries, cardio, sensor samples; entry → sets; template → items; exercise → presets; food entry → items, photo; saved
+  entries, cardio, sensor samples; machine → My settings notes; entry → sets; template → items; exercise → presets; food entry → items, photo; saved
   meal → items) `.cascade`. Schema changes follow DEVELOPMENT's migration and backup steps. Fonts, spacing and colour
   come from the app's current screens (above). Report
   modernisation and file splits as separate findings, outside the ticket's diff. Pinned source

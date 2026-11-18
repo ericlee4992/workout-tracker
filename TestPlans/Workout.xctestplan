@@ -26,7 +26,8 @@
         "WorkoutNameUITests",
         "FloodlightSystemUITests",
         "LivePrefillUITests",
-        "LiveRecentUITests"
+        "LiveRecentUITests",
+        "MySettingsUITests"
       ],
       "target": {
         "containerPath": "container:WorkoutTracker.xcodeproj",

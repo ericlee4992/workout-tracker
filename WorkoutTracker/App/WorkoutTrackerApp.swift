@@ -93,11 +93,6 @@ struct WorkoutTrackerApp: App {
             }
             catch { assertionFailure("Design sample fixture failed: \(error)") }
         }
-        // PROTOTYPE (machine-settings 01): My settings' sample machines and notes, after the design sample.
-        if MySettingsPrototype.isEnabled {
-            do { try MySettingsPrototype.shared.seed(in: modelContainer.mainContext) }
-            catch { assertionFailure("My settings prototype failed: \(error)") }
-        }
         // P1's heavy store: months of history and a long live workout (see PerfFixture).
         if PerfFixture.isEnabled {
             do { try PerfFixture.seed(in: modelContainer.mainContext) }

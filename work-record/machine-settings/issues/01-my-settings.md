@@ -1,9 +1,9 @@
 # 01 — My settings: a setup note per machine and exercise
 
-Status: **prototype — waiting for the user's verdict** (nothing built for real; no schema change; no Codex review
-for the throwaway prototype — Codex reviews the real build).
-Type: prototype
-Decision: [D91](../../../docs/DECISIONS.md) (proposed).
+Status: **real build in progress** (branch `ericlee4992/my-settings`) — the user approved the prototype 2026-11-17
+("looks good. get started"). Codex reviews the real build.
+Type: task (prototype done; tag `design/my-settings-prototype`)
+Decision: [D91](../../../docs/DECISIONS.md) (approved).
 
 ## The request
 
@@ -88,6 +88,38 @@ Schema change (Gate S: DEVELOPMENT's migration + backup steps): a new owned row 
 `MachineInstance` (AGENTS.md delete rules), CloudKit-compatible (UUID id, optional relationships, no
 `@Attribute(.unique)`); export and the safety copy carry it; unit tests for the key (machine × exercise), first-use and
 blank-removes; UI tests for card edit/cancel and the machine page; remove the prototype file and hooks; Codex review.
+
+### 2026-11-17 — the real build
+
+The user: "looks good. get started" (questions 1 and 3 answered by approval). Branch `ericlee4992/my-settings` off the
+prototype branch (prototype kept at tag `design/my-settings-prototype`, `0916cc97`).
+
+- **Data (stored-format change, Gate S):** `Domain/MachineSettings.swift` — `MachineSettingsNote` (`exerciseID`,
+  `text`, `updatedAt`, `machine`), owned by `MachineInstance.settingsNotes` (`.cascade`), added to
+  `WorkoutTrackerStore.modelTypes`. No `@Attribute(.unique)`; one row per machine × exercise is app-side, the canonical
+  row (latest `updatedAt`, then `id`, `CanonicalRow`) counts, and **a blank canonical row is a cleared note** — so a
+  cleared note can't let an older sync duplicate resurface, and a failed save is undone exactly (the row's text and
+  date put back, or the new row removed; nothing pending). `MachineSettings.note(on:exerciseID:)` reads the machine's
+  own rows (no fetch per render); `save(_:on:exerciseID:)`; `hasFinishedHistory(machineID:exerciseID:)` by the D23
+  snapshot (the first-use chip).
+- **Card** (`ExerciseEntryCard`): the line or the chip under the machine row; "My Settings…" in "⋯" when the entry
+  has a machine; the sheet saves through `MachineSettings` and shows "Couldn't Save" on a failure (the text stays).
+  The history check runs once per machine × exercise (`.task(id:)`); a failed check hides the chip (the menu still
+  works).
+- **Machine page:** a row per served exercise plus any other exercise the machine has a note for (a machine without
+  a model used for something it doesn't list never hides a saved note).
+- **Export v15:** `machineSettings` rows (id, machineID, exerciseID, text as stored, updatedAt) and the count; a
+  note's exercise counts as referenced (D28). CSV unchanged. The safety copy copies the store files, so it carries
+  the notes as it is.
+- **Format guard:** `StoreFormatGuardTests.build16Fingerprint` `9d83c203…` (0.2.0 (12)–(16)); new
+  `approvedFingerprint`; fixture `Fixtures/Build16.store` (written by `9d83c203…`-format code — the prototype build,
+  no model change — with `-uiTestDesignSample -uiTestDesignGyms -uiTestDesignHistory`, WAL checkpointed, single file)
+  + `MachineSettingsMigrationTests`.
+- **Fixture:** `-uiTestDesignMySettings` (with Live + Gyms): the three sample notes and the Shoulder Press machine.
+- **Prototype removed:** `MySettingsPrototype.swift` and its hooks.
+- **Tests:** `MachineSettingsTests` (key, update, blank, duplicates, failed save ×2, cascade, archive, history,
+  snapshot, export v15, v14 decode), `MachineSettingsMigrationTests`; `MySettingsUITests` (card Cancel/Save/clear,
+  chip → line, menu item, station rows, single row, captures ×4) in the Workout plan.
 
 ## Comments
 

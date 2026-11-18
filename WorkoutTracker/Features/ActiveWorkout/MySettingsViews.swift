@@ -4,9 +4,8 @@ import SwiftUI
 // chest pad 3 · hurt my elbow at 4"). Current, not history: never in the D23 snapshot, History, an AI prompt or the
 // Lock Screen.
 //
-// These views take the note and closures and store nothing themselves. Today the only caller is the throwaway
-// prototype (`MySettingsPrototype.swift`, in-memory notes); if the user approves the design, the real build keeps
-// these views and points them at the stored note.
+// These views take the note and closures and store nothing themselves; `MachineSettings` stores the note. The design
+// was approved from a tappable prototype (2026-11-16, tag `design/my-settings-prototype`).
 
 enum MySettingsCopy {
     /// The sheet's title.
@@ -22,6 +21,8 @@ enum MySettingsCopy {
     /// Teaches the format: short settings joined by " · ", and room for a warning.
     static let placeholder = "Seat 4 · pad 2 · elbow hurt at 4"
     static let footer = "Kept for this machine and this exercise only. It isn't part of your workout history."
+    static let saveFailedTitle = "Couldn't Save"
+    static let saveFailedMessage = "Your settings weren't saved. Try again."
 }
 
 /// The live card's line, right under the machine: the note in full (wraps at every text size, never truncated),
@@ -128,12 +129,14 @@ struct MySettingsSheet: View {
     var machineLabel: String
     var exerciseName: String
     var initialNote: String
-    var onSave: (String) -> Void
+    /// Throws when the note could not be saved: the sheet stays open with the text, and says so.
+    var onSave: (String) throws -> Void
     @State private var draft: String
+    @State private var saveFailed = false
     @FocusState private var focused: Bool
     @Environment(\.dismiss) private var dismiss
 
-    init(machineLabel: String, exerciseName: String, initialNote: String, onSave: @escaping (String) -> Void) {
+    init(machineLabel: String, exerciseName: String, initialNote: String, onSave: @escaping (String) throws -> Void) {
         self.machineLabel = machineLabel
         self.exerciseName = exerciseName
         self.initialNote = initialNote
@@ -168,14 +171,23 @@ struct MySettingsSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        onSave(trimmed)
-                        dismiss()
+                        do {
+                            try onSave(trimmed)
+                            dismiss()
+                        } catch {
+                            saveFailed = true
+                        }
                     }
                     .disabled(trimmed == initialNote.trimmingCharacters(in: .whitespacesAndNewlines))
                     .accessibilityIdentifier("mySettings.save")
                 }
             }
             .onAppear { focused = true }
+            .alert(MySettingsCopy.saveFailedTitle, isPresented: $saveFailed) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(MySettingsCopy.saveFailedMessage)
+            }
         }
     }
 }
