@@ -30,3 +30,21 @@ project skills. The user: "build the release and review-round skills first" (the
 - Nothing of the old checklist is lost: each of its six steps maps to skill steps 1–10 (the export-options details stay
   in `scripts/testflight.sh`, where they live).
 - No app code changed; no build or tests needed.
+
+### Codex round 1 — not clear (4 × P2), fixed
+
+[Report](../codex-review-02.md) (links 30/30, anchors 4/4, symlinks, frontmatter, secrets: clean).
+1. *The T6 exception* (Codex as implementer, Claude reviews): review-round now names "the reviewer whoever T6 names",
+   swaps the roles in that case, and says a reviewer with a brief follows the brief; testflight-release's ready check
+   asks for "a clear verdict from its independent reviewer (T6)".
+2. *Docs-only evidence*: the self-check's completion criterion records what actually ran for the scope DEVELOPMENT
+   selects (tests: counts, exit codes, xcresult; docs: the checks); regression tests for code fixes; the brief's
+   "what to run" says docs-only work is checks, no build.
+3. *Gate S against the installed build*: step 2 separates the release's stored-format statement from the phone's Gate
+   S, which compares against the build installed on the phone (STATE), carries skipped builds' format changes, and
+   holds Gate S when the installed build is unknown.
+4. *The detached archive checkout*: step 10 returns to the release worktree on the release branch before recording,
+   and fast-forwards `main` from the home checkout as in step 7.
+Verification: links re-checked (0 broken).
+
+## Comments

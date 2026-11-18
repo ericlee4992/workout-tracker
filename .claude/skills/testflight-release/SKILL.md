@@ -22,15 +22,20 @@ Done when: the user has answered all three.
 
 ## 2. Ready check
 
-- Every ticket since the last build is merged into `main` with a clear Codex verdict.
+- Every ticket since the last build is merged into `main` with a clear verdict from its independent reviewer (T6).
 - **Contents:** `git diff --stat <last build's commit>..origin/main -- WorkoutTracker WorkoutTrackerWidget
   WorkoutTrackerWatch Config server` — every app change belongs to a listed ticket.
-- **Stored format:** did `StoreFormatGuardTests.approvedFingerprint` change since the last build, or anything that
-  rewrites stored rows or preferences on first launch? Then **Gate S** on the user's phone before it installs this
-  build (DEVELOPMENT → *Container backup and restore*); otherwise "no Gate S" and why.
+- **Stored format, for the release:** did `StoreFormatGuardTests.approvedFingerprint` change since the last build, or
+  anything that rewrites stored rows or preferences on first launch? The record says so (testers get N1's safety copy).
+- **Gate S, for the user's phone:** compare against the build **installed on the phone** (STATE's phone facts), not the
+  last upload — a phone that skipped a build crosses that build's format change too. Any fingerprint change or
+  first-launch rewrite between the installed build's commit and this one → **Gate S** before the phone installs it
+  (DEVELOPMENT → *Container backup and restore*). An installed build that STATE does not establish → ask the user, and
+  until then Gate S stands. Otherwise "no Gate S" and why.
 - **Server:** a change under `server/` is deployed before the upload (`server/README.md`); otherwise "no server change".
 
-Done when: contents, Gate S and server each have an answer backed by the diff.
+Done when: contents, stored format, Gate S and server each have an answer backed by the diff (and, for Gate S, the
+installed build).
 
 ## 3. Branch and numbers
 
@@ -97,8 +102,11 @@ Done when: `UPLOAD OK`, with the time.
 
 ## 10. Record and hand over
 
-Add the archive and upload lines and the user's next steps to the record; rewrite STATE's top (the *Updated* line and
-the first RESUME HERE bullet: the build, the time, Gate S or not). Commit, push and fast-forward `main` again, then
+Back in the release worktree, on the release branch (`git branch --show-current`; the archive checkout stays
+detached at the shipped commit): add the archive and upload lines and the user's next steps to the record; rewrite
+STATE's top (the *Updated* line and
+the first RESUME HERE bullet: the build, the time, Gate S or not). Commit and push the release branch, fast-forward
+`main` from the home checkout as in step 7, then
 watch GitHub Tests on `main` (`gh run list --workflow tests.yml --branch main`).
 
 Tell the user, in plain words:
