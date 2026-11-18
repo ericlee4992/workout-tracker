@@ -121,6 +121,22 @@ prototype branch (prototype kept at tag `design/my-settings-prototype`, `0916cc9
   snapshot, export v15, v14 decode), `MachineSettingsMigrationTests`; `MySettingsUITests` (card Cancel/Save/clear,
   chip → line, menu item, station rows, single row, captures ×4) in the Workout plan.
 
+**Evidence (round 0, `12a06ef0` + test-only pin fixes):**
+
+```
+Verified: Unit plan — 1327/1327, exit 0, build/results/unit-ms2.xcresult (first run unit-ms1: 8 expected failures —
+  six export-version pins at 14 and the new fingerprint placeholder — fixed before ms2; MachineSettingsTests,
+  MachineSettingsMigrationTests, StoreFormatGuardTests pass)
+Verified: MySettingsUITests (Workout plan, -only-testing, serial) — 9/9, exit 0, build/results/ui-ms1.xcresult
+Verified: xcodebuild build exit 0 (WT-iPhone27)
+Not verified: a phone install over 0.2.0 (16) (Gate S needed first); CloudKit sync (not enabled); VoiceOver by ear
+Known flaky: none seen
+```
+
+Captures: [`../captures/01/`](../captures/01/) — `ms01-{card-note,editor,card-chip,card-station,page-single,
+page-station}-{light,dark}-{default,axl}.png` from the capture tests, and `sheet-*.png` per mode. They match the
+approved prototype.
+
 ## Comments
 
 ### 2026-11-16 — the user: keep the first-use hint as is
