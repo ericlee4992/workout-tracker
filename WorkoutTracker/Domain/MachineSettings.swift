@@ -54,7 +54,10 @@ struct MachineSettings {
             guard existing.text != trimmed else { return }
             let previous = (existing.text, existing.updatedAt)
             existing.text = trimmed
-            existing.updatedAt = date
+            // Never older than it was (codex-review-01 #1): with the clock set back, an earlier date would hand the
+            // canonical place to an older duplicate, and a cleared note would resurface. The id tie-break already
+            // favours this row, so an equal date keeps it canonical too.
+            existing.updatedAt = max(previous.1, date)
             do { try save(context) } catch {
                 existing.text = previous.0
                 existing.updatedAt = previous.1

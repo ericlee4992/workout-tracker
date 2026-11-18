@@ -103,6 +103,48 @@ struct MachineSettingsTests {
         #expect(MachineSettings.note(on: station, exerciseID: pushdown.id) == nil, "the older duplicate stays hidden")
     }
 
+    /// codex-review-01 #1: the clock moved back. Clearing or editing the canonical row at an earlier time keeps it
+    /// canonical, so the older duplicate never resurfaces and the edit is never lost.
+    @Test func anEditAtAnEarlierTimeKeepsTheRowCanonical() throws {
+        for clearing in [true, false] {
+            let (context, _, station, _, pushdown, _) = try world()
+            let older = MachineSettingsNote(exerciseID: pushdown.id, text: "Old", updatedAt: Date(timeIntervalSince1970: 200))
+            let newer = MachineSettingsNote(exerciseID: pushdown.id, text: "New", updatedAt: Date(timeIntervalSince1970: 300))
+            context.insert(older)
+            context.insert(newer)
+            older.machine = station
+            newer.machine = station
+            try context.save()
+
+            try MachineSettings(context: context).save(clearing ? "" : "Edited", on: station, exerciseID: pushdown.id,
+                                                       at: Date(timeIntervalSince1970: 100))
+            #expect(MachineSettings.note(on: station, exerciseID: pushdown.id) == (clearing ? nil : "Edited"))
+            #expect(newer.updatedAt == Date(timeIntervalSince1970: 300), "not moved back")
+            #expect(older.text == "Old")
+        }
+    }
+
+    /// Two rows with one date: the id breaks the tie, and an edit at an earlier time keeps the winner.
+    @Test func anEqualDateTieStaysWithTheEditedRow() throws {
+        let (context, _, station, _, pushdown, _) = try world()
+        let date = Date(timeIntervalSince1970: 300)
+        let low = MachineSettingsNote(id: UUID(uuidString: "00000000-0000-4000-8000-000000000001")!,
+                                      exerciseID: pushdown.id, text: "Low", updatedAt: date)
+        let high = MachineSettingsNote(id: UUID(uuidString: "FFFFFFFF-0000-4000-8000-000000000001")!,
+                                       exerciseID: pushdown.id, text: "High", updatedAt: date)
+        context.insert(low)
+        context.insert(high)
+        low.machine = station
+        high.machine = station
+        try context.save()
+        #expect(MachineSettings.note(on: station, exerciseID: pushdown.id) == "High")
+
+        try MachineSettings(context: context).save("", on: station, exerciseID: pushdown.id,
+                                                   at: Date(timeIntervalSince1970: 100))
+        #expect(high.text == "" && low.text == "Low")
+        #expect(MachineSettings.note(on: station, exerciseID: pushdown.id) == nil, "the tie still goes to the cleared row")
+    }
+
     // MARK: A failed save leaves nothing pending
 
     @Test func aFailedEditPutsTheNoteBack() throws {

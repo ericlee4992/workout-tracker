@@ -137,6 +137,16 @@ Captures: [`../captures/01/`](../captures/01/) — `ms01-{card-note,editor,card-
 page-station}-{light,dark}-{default,axl}.png` from the capture tests, and `sheet-*.png` per mode. They match the
 approved prototype.
 
+### Codex round 1 — not clear (1 × P2), fixed
+
+[Report](../codex-review-01.md): Codex reran build, Unit 1327/1327 and MySettingsUITests 9/9 (exit 0). **#1 (P2):** with
+the clock moved back, saving the canonical row at an earlier `updatedAt` handed the canonical place to an older
+duplicate, so a cleared note resurfaced (or an edit looked lost). Fix: `MachineSettings.save` keeps
+`updatedAt = max(previous, date)` on the edited row (the id tie-break already favours it). Regressions:
+`anEditAtAnEarlierTimeKeepsTheRowCanonical` (clear and edit) and `anEqualDateTieStaysWithTheEditedRow`.
+Verified: MachineSettingsTests + MachineSettingsMigrationTests — 17/17, exit 0, build/results/unit-ms3.xcresult
+(domain-only fix; no UI change, so the UI run stands).
+
 ## Comments
 
 ### 2026-11-16 — the user: keep the first-use hint as is
