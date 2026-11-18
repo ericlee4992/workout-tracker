@@ -61,7 +61,7 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
 
 - Claude implements and Codex independently reviews (T6, the user 2026-11-14); a ticket may name Codex as
   implementer, and then Claude reviews. The author does not supply the independent clearance. Give the reviewer the ticket, diff, relevant decisions, and evidence; resolve
-  findings and re-review fixes.
+  findings and re-review fixes. Each round follows the [`review-round`](.claude/skills/review-round/SKILL.md) skill.
 - **Self-check before every review round.** Reread your own diff as a hostile reviewer for the defect classes Codex
   keeps finding here, fix what you find, then send it:
   - *the wrong record*: a name, snapshot or value looked up from "the first match" instead of the exact entry, set or
@@ -117,7 +117,7 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
   in about 20 minutes. It first passed 2026-11-14 (run 43588010018), after 216 runs that never had: macos-26's Xcode
   26.6 could not compile the app, and on-device text recognition hung on the virtual Mac (those tests went with the
   machine form's label reader, D88, so every unit test runs there now). A red Tests run is a real failure: read it.
-- **TestFlight builds:** follow DEVELOPMENT's [TestFlight build checklist](docs/DEVELOPMENT.md#testflight-build-checklist);
+- **TestFlight builds:** the [`testflight-release`](.claude/skills/testflight-release/SKILL.md) skill, step by step;
   `scripts/testflight.sh` archives (with its checks) and uploads. Whether to release, the version number, What's New
   and the What to Test note are the user's decisions.
 - Before schema changes or device installation, follow DEVELOPMENT's migration, backup,

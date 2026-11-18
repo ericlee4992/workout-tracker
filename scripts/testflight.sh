@@ -1,5 +1,5 @@
 #!/bin/bash
-# TestFlight archive and upload (DEVELOPMENT → TestFlight build checklist, steps 4–5).
+# TestFlight archive and upload (the testflight-release skill, steps 8–9).
 #
 #   scripts/testflight.sh archive [out-dir]   in the release-build checkout, detached at the main commit to ship
 #   scripts/testflight.sh upload <archive>     upload that archive to App Store Connect

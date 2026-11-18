@@ -243,40 +243,10 @@ Record that distinction in STATE and ask the user to open it when necessary.
 
 ## TestFlight build checklist
 
-Every upload, in order (each build's record goes in its ticket and STATE; builds 5 and 6 are worked examples in
-tickets 08 and 13):
-
-1. **Ready:** the tickets in the build are reviewed clear and merged; the user said go ahead. A stored-format change
-   needs Gate S first (Container backup and restore); otherwise say "no Gate S" and why.
-2. **Release notes (D62):** draft the tester-facing **What to Test** note from the tickets since the last build —
-   plain words ("Fixed…", "New…"), then what to try — and show it to the user before uploading; the user may edit it.
-   Copy the final text into the ticket. If the build contains a **big new feature or change**, it also needs an
-   in-app **What's New** entry (ticket 14) in the same build; small fixes and small features get the note only.
-   When unsure which it is, ask the user. The entry is code: append a `WhatsNewEntry` to `WhatsNew.entries`
-   (`WorkoutTracker/Domain/WhatsNew.swift`) with **this build's number**, a title and a few lines the user approved;
-   it shows once to people updating to that build or later (not on a fresh install, not over a workout in progress)
-   and stays readable in Settings → What's New. Its capture test is `FloodlightWhatsNewUITests` (`-uiTestWhatsNew`).
-3. **Build number and release review:** on a `release-<version>-<build>` branch, raise `CURRENT_PROJECT_VERSION` in
-   every target (`project.pbxproj`, all occurrences), check `xcodebuild build` and the Unit plan, and write the release
-   record (`work-record/release/<version>-build-<build>.md`: contents, Gate S or why not, the notes, evidence). Codex
-   reviews the branch (`codex-review-<version>-build-<build>.md`) to "clear"; then fast-forward `main` and push.
-4. **Archive** from the detached `release-build` checkout at that `main` commit (`Config/Local.xcconfig` present):
-   `git -C <release-build> checkout --detach origin/main`, then, inside it, `scripts/testflight.sh archive` (default
-   output `/tmp/stacked-release-<version>-<build>/`). The script refuses a dirty checkout or targets that
-   disagree on version/build, and checks the archive (`scripts/testflight.sh check <archive>` reruns them): the widget
-   is embedded with the app's identifier `.widget`; app and widget version and build; `WTServerURL` exactly the
-   production server in `Config/Shared.xcconfig` (a `Local.xcconfig` override never ships); `WTGoogleClientID`
-   present; signed by the team in `Local.xcconfig`. It ends with `ARCHIVE OK`.
-5. **Upload:** in the same checkout, `scripts/testflight.sh upload <the .xcarchive>`. It writes the export options (`app-store-connect`,
-   `upload`, automatic signing, the team from `Local.xcconfig`, `manageAppVersionAndBuildNumber` false) fresh into a
-   temporary folder on every run — the old hand-written file in `/tmp` was lost twice between builds — and requires
-   "Upload succeeded" (`UPLOAD OK`). **Exit 2 = Xcode is not signed in to App Store Connect** ("Failed to Use Accounts",
-   seen 2026-11-13 after an Xcode update): the user signs in at Xcode → Settings → Accounts; an agent cannot enter the
-   password or code. Then rerun the upload on the same archive.
-6. **App Store Connect** (Apple processes the build in 10–30 min): neither group adds new builds automatically.
-   **Developer** (internal) → Builds → + → the build → Add (no review). **Friends** (external) → Builds → + → the
-   build → Next → paste the What to Test note → Submit for Review. The agent may select and fill; the user clicks
-   Add / Submit.
+The steps — the user's choices, the ready check (Gate S, server), the build number, the record, the release review,
+the merge, `scripts/testflight.sh archive` and `upload`, and the user's App Store Connect steps — are the
+[`testflight-release`](../.claude/skills/testflight-release/SKILL.md) skill. Builds 5 and 6 are worked examples in
+tickets 08 and 13; each build's record is in `work-record/release/`.
 
 ## Provisioning expiry
 
