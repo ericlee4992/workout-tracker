@@ -1,6 +1,6 @@
 # 02 — Project skills for the release and the review round
 
-Status: **in review** (branch `ericlee4992/workflow-skills` off `main` `d02d414d`).
+Status: **done — Codex clear (round 2), merged into `main`**; branch `ericlee4992/workflow-skills` kept.
 Type: task (docs / agent instructions only)
 
 ## The user's request (2026-11-18)
@@ -46,5 +46,10 @@ project skills. The user: "build the release and review-round skills first" (the
 4. *The detached archive checkout*: step 10 returns to the release worktree on the release branch before recording,
    and fast-forwards `main` from the home checkout as in step 7.
 Verification: links re-checked (0 broken).
+
+### Codex round 2 — clear
+
+[Report](../codex-review-02b.md): all four findings resolved, no new ones (links 30/30, anchors 4/4, symlinks,
+frontmatter, whitespace, secrets clean). Merged into `main` by fast-forward.
 
 ## Comments
