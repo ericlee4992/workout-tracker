@@ -20,7 +20,7 @@ Reader search (`settingsNotes|MachineSettings`, plus export field names) found o
 
 The Build16 fixture's metadata is checked against the pre-feature shipped fingerprint. The model change is additive; there is no new production first-launch rewrite. N1 copies the complete SQLite store/WAL/SHM files before opening an incompatible model, so no table-specific copy change is needed. Migration tests check old-format detection, selected row counts, and saving a note on an existing machine; they do not establish byte-for-byte fidelity for every old field. Gate S remains necessary before a phone install.
 
-Inspected the four committed real capture contact sheets (light/dark × default/AccessibilityL): the note and station rows wrap, and the editor controls remain usable. No new visual finding. README/SPEC/D91 describe the implemented feature. 
+Inspected the four committed real capture contact sheets (light/dark × default/AccessibilityL): the note and station rows wrap, and the editor controls remain usable. No new visual finding. README/SPEC/D91 describe the implemented feature.
 
 Scope is appropriate per DEVELOPMENT: full Unit plan for the new persistence/export domain behavior, plus `MySettingsUITests` for the two affected UI surfaces. Optional coverage beyond the required fix: switch a draft entry between machines, finish the first workout and start another, and exercise the failed-save alert in UI. These paths were inspected, not separately driven by added tests.
 

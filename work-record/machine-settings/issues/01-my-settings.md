@@ -1,7 +1,8 @@
 # 01 — My settings: a setup note per machine and exercise
 
-Status: **real build in progress** (branch `ericlee4992/my-settings`) — the user approved the prototype 2026-11-17
-("looks good. get started"). Codex reviews the real build.
+Status: **done — Codex clear (round 2), merged into `main`**; branch `ericlee4992/my-settings` kept. The user approved
+the prototype 2026-11-17 ("looks good. get started"). **Stored-format change: Gate S before the phone installs the build
+that carries it.**
 Type: task (prototype done; tag `design/my-settings-prototype`)
 Decision: [D91](../../../docs/DECISIONS.md) (approved).
 
@@ -146,6 +147,12 @@ duplicate, so a cleared note resurfaced (or an edit looked lost). Fix: `MachineS
 `anEditAtAnEarlierTimeKeepsTheRowCanonical` (clear and edit) and `anEqualDateTieStaysWithTheEditedRow`.
 Verified: MachineSettingsTests + MachineSettingsMigrationTests — 17/17, exit 0, build/results/unit-ms3.xcresult
 (domain-only fix; no UI change, so the UI run stands).
+
+### Codex round 2 — clear
+
+[Report](../codex-review-01b.md): the P2 is resolved, no new findings; Codex rebuilt and ran MachineSettingsTests +
+MachineSettingsMigrationTests 17/17 (exit 0), and inspected the round-1 UI result (9/9) rather than rerunning it (no
+UI change). Merged into `main` by fast-forward.
 
 ## Comments
 
