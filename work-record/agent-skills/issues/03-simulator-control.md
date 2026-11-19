@@ -1,6 +1,6 @@
 # 03 — Simulator control for agents: MobileBuildMCP trial
 
-Status: **trial passed — in review (round 4)** (branch `ericlee4992/simulator-control` off `main` `eb431b3a`).
+Status: **done — Codex clear (round 4), merged into `main`**; branch `ericlee4992/simulator-control` kept.
 Type: task (tooling trial)
 
 ## The user's request (2026-11-18)
@@ -125,3 +125,10 @@ Checked live: a reused daemon kept its pid across calls (A, B); `MOBILEBUILDMCP_
 exit 2 (E); a call from `WorkoutTracker/` works (F); a registry naming 2.7.0 → replaced (G); with a fake
 `mobilebuildmcp` first on PATH, an unreadable status → exit 4 before anything runs (H), and an unreadable status after
 a failed stop → exit 4 (I); the whole flow: 0 failures, 170 s (J).
+
+### Codex round 4 — clear
+
+[Report](../codex-review-03d.md): all four round-3 findings resolved, no new ones; Codex checked the override removal
+with foreign socket/log variables on a status call, the registry layout against the package's own helpers, and the
+root config loading. The accepted residual stays documented. README's layout table names `.mobilebuildmcp/`,
+`scripts/sim-ui.sh` and the agent skills. Merged into `main` by fast-forward.

@@ -1,11 +1,17 @@
 # Current project state
 
-Updated **2026-11-18: [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) (My settings, D91) uploaded 01:17 EST — a stored-format change: Gate S on the phone before it installs build 17. Then the workflow skills `review-round` and `testflight-release` merged (agent-skills 02). `main` `ff346e2e`; GitHub Tests 44259746888 green.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-19: agents can now tap through the simulator — `scripts/sim-ui.sh` (MobileBuildMCP 2.7.1, telemetry off; agent-skills 03, Codex clear round 4, merged). Earlier: [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) (My settings) uploaded 2026-11-18 — Gate S on the phone before it installs build 17; the workflow skills merged.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## RESUME HERE (2026-11-18)
+## RESUME HERE (2026-11-19)
 
 - **NOW (resume here) — [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) uploaded 2026-11-18 01:17 EST** (`main` `8812bfda`; machine-settings 01 My settings, D91; no What's New; the user's What to Test note; no server change; Codex release review clear, Unit 1329/1329). **Stored-format change (`016aa14c…`): Gate S on the phone before installing.** **The user's steps:** processing → Developer → Gate S (with Claude) → install → try My settings → Friends with the What to Test note → Submit.
+- **Done 2026-11-19 — [agent-skills 03, simulator screen control](../work-record/agent-skills/issues/03-simulator-control.md)**
+  (Codex clear round 4; merged; branch `ericlee4992/simulator-control` kept). `scripts/sim-ui.sh` drives the simulator's
+  screen (snapshot → tap/type/swipe by accessibility identifier → screenshot) through MobileBuildMCP 2.7.1's CLI,
+  installed user-local (`npm install -g mobilebuildmcp@2.7.1`) with telemetry off (`.mobilebuildmcp/config.yaml`); not
+  registered as an MCP server. DEVELOPMENT → *Simulator screen control*. Limits: US-keyboard typing only, ~10–13 s per
+  action. **Next (the user's go):** the Gate S wizard before the phone installs 0.2.0 (17).
 - **Done 2026-11-18 — [agent-skills 02, workflow skills](../work-record/agent-skills/issues/02-workflow-skills.md)**
   (Codex clear round 2; merged; branch `ericlee4992/workflow-skills` kept): project skills `review-round` (one Codex
   review round, author's side) and `testflight-release` (every upload; replaces DEVELOPMENT's checklist, which now

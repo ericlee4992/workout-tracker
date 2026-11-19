@@ -172,7 +172,8 @@ in this repository.
 | `WorkoutTrackerWatch/` | An Apple Watch companion (workout session, heart rate, phone link) — written, never built or run, not in the beta |
 | `server/` | The backend: accounts (Apple, Google), the AI proxy with daily limits, food database lookups (barcodes, search), feedback, the privacy and support pages |
 | `TestPlans/` | The named test groups (Xcode test plans), written by `scripts/test-plans.py` |
-| `Config/`, `scripts/` | Build settings (`Local.xcconfig` is yours and git-ignored), catalog generation, device install, the secret scanner, test helpers |
+| `Config/`, `scripts/` | Build settings (`Local.xcconfig` is yours and git-ignored), catalog generation, device install, the secret scanner, test helpers, simulator screen control for agents (`sim-ui.sh`) |
+| `.claude/skills/` (`.agents/skills/` links to it), `.mobilebuildmcp/` | Agent skills — vendored ones and the project's own (`review-round`, `testflight-release`); the config of the simulator-control tool (telemetry off) |
 | `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md` | Shared agent workflow, Claude's import of it, the domain glossary |
 | `docs/` | `SPEC.md` (product), `DECISIONS.md` (why), `STATE.md` (current work), `DEVELOPMENT.md` (runbook), `archive/` (preserved handoffs) |
 | `work-record/` | Every ticket with its acceptance criteria and resolution, every cross-review, and the screenshots each ticket was judged on |
