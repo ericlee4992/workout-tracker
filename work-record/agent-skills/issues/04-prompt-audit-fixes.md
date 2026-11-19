@@ -1,6 +1,6 @@
 # 04 — Prompt audit fixes
 
-Status: **in review** (branch `ericlee4992/prompt-audit-fixes` off `main` `8381c795`).
+Status: **done — Codex clear (round 1), merged into `main`**; branch `ericlee4992/prompt-audit-fixes` kept.
 Type: task (agent instructions only)
 
 ## The user's request (2026-11-19)
@@ -35,3 +35,8 @@ changes" — the four proposed hunks. The six flagged items were left unedited (
 
 - No other reference to the removed phrases outside `work-record/` and the archive (`rg`, 0 hits).
 - Relative links in AGENTS.md and the ios-design skill resolve (0 broken).
+
+### Codex round 1 — clear
+
+[Report](../codex-review-04.md): no findings (27 links, 6 anchors, symlinks, lockfile unchanged, `CONTEXT.md` and ADRs
+read, whitespace and secrets clean). Merged into `main` by fast-forward.
