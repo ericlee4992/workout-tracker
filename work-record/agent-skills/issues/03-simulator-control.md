@@ -1,6 +1,6 @@
 # 03 — Simulator control for agents: MobileBuildMCP trial
 
-Status: **trial passed — in review (round 2)** (branch `ericlee4992/simulator-control` off `main` `eb431b3a`).
+Status: **trial passed — in review (round 3)** (branch `ericlee4992/simulator-control` off `main` `eb431b3a`).
 Type: task (tooling trial)
 
 ## The user's request (2026-11-18)
@@ -82,3 +82,26 @@ Known flaky: none seen
    returned screenshots (`$TMPDIR`; keep one in the ticket's captures or delete it), and that physical-device tools
    are not used.
 - The trial's runner is kept as [`03-trial-flow.sh`](../03-trial-flow.sh) (it relaunches the app on WT-iPhone27).
+
+### Codex round 2 — not clear (2 × P2), redesigned
+
+[Report](../codex-review-03b.md): (1) a `--socket` argument could send the call to a daemon the script never checked;
+(2) the round-1 marker trusted whatever answered "already running" and could not prove a daemon's version.
+
+Rather than harden the per-process checks further, telemetry is now off **by the tool's own configuration**: it reads
+`.mobilebuildmcp/config.yaml` from the workspace root (`hydrateSentryDisabledEnvFromProjectConfig`, called by the CLI,
+the daemon — whose working directory is the workspace root (`startDaemonBackground`, `cwd: opts.workspaceRoot`) — and
+the MCP server) and sets the opt-out before `initSentry`. The committed file says `sentryDisabled: true`; verified by
+running that function with no opt-out in the environment (→ `true`). `scripts/sim-ui.sh` (rewritten): runs from the
+repository root; refuses without that file; exports the opt-out; refuses `--socket` and `--socket=…`; serves a call
+through a running daemon only when its own registry entry (`state/daemon/daemon.json`, written by the daemon) has the
+status pid, version 2.7.1 and a start time after the config file's last change — otherwise stops it, and the call
+starts a fresh one from the pinned CLI. The round-1 marker files are gone.
+
+Checked live: (1) a daemon started before the config file → replaced; (2) a verified one → reused (same pid); (3) one
+started bare, no opt-out in its environment → reused, since the config covers it; (4) a registry naming 2.7.0 →
+replaced; (5) `--socket x` and `--socket=x` → refused, exit 2; (6) the config file moved away → refused, exit 3;
+(7) no daemon → the call starts one. The whole flow again: 0 failures, 186 s.
+Residual (accepted): the status check and the call are separate commands, so a daemon swapped in between them is not
+re-checked — but any daemon started in the repository reads the config, so telemetry stays off; only the pin is at
+risk, and only from another install racing on the same machine.

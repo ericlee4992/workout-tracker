@@ -1,0 +1,4 @@
+# agent-skills 03: MobileBuildMCP reads this from the workspace root — every CLI call and daemon started here,
+# whoever starts it, runs with its Sentry telemetry off. scripts/sim-ui.sh refuses to run without it.
+schemaVersion: 1
+sentryDisabled: true
