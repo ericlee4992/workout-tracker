@@ -1,6 +1,7 @@
 ---
 name: ios-design
-description: Design, restyle or review a screen of this iPhone app — its composition, hierarchy, type, colour and Dynamic Type — before any screen-level UI change, when mocking a screen for the user, or when the user says a screen looks off, boring or generic.
+description: Reference only — the Floodlight-era design guide for this app's screens; new screen work matches the app's current screens (AGENTS.md → Screen design).
+disable-model-invocation: true
 ---
 
 # iOS design for this app

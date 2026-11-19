@@ -114,9 +114,7 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
   and mirrored messages are actually sent; testing only the gate or receiver misses these defects.
 - **Local verification is the gate; CI is a second check.** GitHub's Tests workflow runs the Unit test plan after each
   push to `main` (and by hand: `gh workflow run tests.yml --ref <branch>`) on the `xcode-27` image with Xcode 27.2,
-  in about 20 minutes. It first passed 2026-11-14 (run 43588010018), after 216 runs that never had: macos-26's Xcode
-  26.6 could not compile the app, and on-device text recognition hung on the virtual Mac (those tests went with the
-  machine form's label reader, D88, so every unit test runs there now). A red Tests run is a real failure: read it.
+  in about 20 minutes (its history: DEVELOPMENT → CI). A red Tests run is a real failure: read it.
 - **Looking at or driving the simulator's screen** (tapping through a prototype, checking a flow by hand):
   `scripts/sim-ui.sh`, per DEVELOPMENT → [Simulator screen control](docs/DEVELOPMENT.md#simulator-screen-control);
   builds and tests stay `xcodebuild`.
@@ -146,8 +144,8 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
   and update steps: [DEVELOPMENT](docs/DEVELOPMENT.md#vendored-agent-skills).
 - **Ticket creation or updates:** [issue tracker](docs/agents/issue-tracker.md);
   **triage:** [triage labels](docs/agents/triage-labels.md).
-- **Domain terminology or architectural decisions:** [domain guide](docs/agents/domain.md);
-  `CONTEXT.md` and `docs/adr/` are created lazily by the domain-modeling workflow.
+- **Domain terminology or architectural decisions:** [domain guide](docs/agents/domain.md); the glossary is
+  `CONTEXT.md` and the decision records are in `docs/adr/`.
 - **Build/test/install failure:** [DEVELOPMENT](docs/DEVELOPMENT.md), then the relevant ticket
   or archived incident. Read the scanner's prior cross-reviews before changing its matcher.
 
