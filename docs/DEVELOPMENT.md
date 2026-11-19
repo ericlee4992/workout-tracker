@@ -202,6 +202,31 @@ rerun before diagnosis.
 - A stalled `simctl diagnose` child after a failing UI run can hang `xcodebuild test`; pass
   `-collect-test-diagnostics never` for focused runs.
 
+## Simulator screen control
+
+`scripts/sim-ui.sh` lets an agent look at and drive the simulator's screen — tap through a prototype, check a flow by
+hand, read what a screen shows — without a UI test (agent-skills 03, trial passed 2026-11-18). It wraps the CLI of
+[MobileBuildMCP](https://github.com/getsentry/MobileBuildMCP) (formerly XcodeBuildMCP), **pinned at 2.7.1** in the
+user-local Node (`npm install -g mobilebuildmcp@2.7.1`; the script refuses another version), with its Sentry telemetry
+off on every call (`MOBILEBUILDMCP_SENTRY_DISABLED=true`). Builds, tests and installs stay this file's `xcodebuild`
+and `simctl` procedures; its `init` and MCP server are not used.
+
+The loop: install and launch the app as usual (with the launch arguments you need), then
+`scripts/sim-ui.sh ui-automation snapshot-ui --simulator-id <udid>` → targets as `ref|action|role|label|value|id`
+(our accessibility identifiers appear in `id`) → `tap`, `type-text --replace-existing`, `swipe --within-element-ref
+<scroll ref> --direction up` with a ref from the **latest** snapshot → snapshot again after any navigation, sheet or
+scroll. `ui-automation screenshot --return-format path` saves a small JPEG to read. `scripts/sim-ui.sh <workflow>
+<tool> --help` lists the rest.
+
+- Typing takes US-keyboard characters only: no "·", accents or Korean (`ACTION_FAILED`) — type those in a UI test.
+- Each action is slow, about 10–13 s (a snapshot ~4–13 s): the five-step My settings flow takes ~160 s.
+- It starts a background daemon (with telemetry off, inherited from the script); `scripts/sim-ui.sh daemon stop` ends
+  it. State lives in `~/Library/Developer/MobileBuildMCP`. Keep it idle while another agent's heavy run is going.
+- Xcode 27's Device Hub simulators work (2.7.0+). No macOS permission prompt appeared in the trial; if one does, the
+  user decides.
+- To update: read the changelog since 2.7.1, install the new exact version, change `expected` in the script and this
+  section.
+
 ## Real-device installation
 
 The interactive `scripts/install-on-device.sh` is for first-time human setup. For an already

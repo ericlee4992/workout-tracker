@@ -117,6 +117,9 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
   in about 20 minutes. It first passed 2026-11-14 (run 43588010018), after 216 runs that never had: macos-26's Xcode
   26.6 could not compile the app, and on-device text recognition hung on the virtual Mac (those tests went with the
   machine form's label reader, D88, so every unit test runs there now). A red Tests run is a real failure: read it.
+- **Looking at or driving the simulator's screen** (tapping through a prototype, checking a flow by hand):
+  `scripts/sim-ui.sh`, per DEVELOPMENT → [Simulator screen control](docs/DEVELOPMENT.md#simulator-screen-control);
+  builds and tests stay `xcodebuild`.
 - **TestFlight builds:** the [`testflight-release`](.claude/skills/testflight-release/SKILL.md) skill, step by step;
   `scripts/testflight.sh` archives (with its checks) and uploads. Whether to release, the version number, What's New
   and the What to Test note are the user's decisions.
