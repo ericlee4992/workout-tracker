@@ -1,6 +1,6 @@
 # 03 — Simulator control for agents: MobileBuildMCP trial
 
-Status: **trial passed — in review** (branch `ericlee4992/simulator-control` off `main` `eb431b3a`).
+Status: **trial passed — in review (round 2)** (branch `ericlee4992/simulator-control` off `main` `eb431b3a`).
 Type: task (tooling trial)
 
 ## The user's request (2026-11-18)
@@ -53,7 +53,8 @@ snapshot (targets found by label/identifier, not guessed coordinates):
   prompt appeared.
 - **Found limits:** `type-text` takes US-keyboard characters only ("·" failed with `ACTION_FAILED`; plain text
   worked); every action is slow (~10–13 s, snapshots 4–13 s).
-- Left behind: `~/Library/Developer/MobileBuildMCP` (12 KB); nothing in the repository.
+- Left behind: state and logs in `~/Library/Developer/MobileBuildMCP` (12 KB); nothing in the repository. (Also, found
+  in review: the daemon socket and returned screenshots under `$TMPDIR` — see round 1.)
 
 **Decision (Claude, within the user's "go ahead"):** keep it, CLI only. `scripts/sim-ui.sh`, a DEVELOPMENT section
 (*Simulator screen control*: the loop, the limits, the update steps) and one AGENTS.md line. **No MCP registration:**
@@ -65,3 +66,19 @@ Verified: the trial above (3 passes, 0 failures in the 2 unattended ones); xcode
 Not verified: other screens and gestures (long-press, drag); the physical-device tools (unused)
 Known flaky: none seen
 ```
+
+### Codex round 1 — not clear (1 × P2, 1 × P3), fixed
+
+[Report](../codex-review-03.md).
+1. **P2 — a reused daemon escaped the opt-out and the pin.** Stateful tools run in a per-workspace daemon the CLI
+   reuses with its original environment. `scripts/sim-ui.sh` now runs a tool only through a daemon it started itself:
+   a marker `~/Library/Developer/MobileBuildMCP/sim-ui-<socket dir>.pid` holds its pid and version, and the process's
+   own environment must carry `MOBILEBUILDMCP_SENTRY_DISABLED=true`; any other daemon is stopped and replaced (a
+   trusted one is reused, so element refs survive between calls). Checked live: (0) a daemon with no marker →
+   replaced; (b) a trusted one → reused, same pid; (c) one started bare, telemetry **on** → replaced by one with it
+   off; (d) a marker naming another version → replaced; (a) none running → started and recorded. Then the whole flow
+   again: 0 failures, 187 s.
+2. **P3 — the footprint.** DEVELOPMENT and this ticket now name the socket (`$TMPDIR/mobilebuildmcp-<hash>/`) and the
+   returned screenshots (`$TMPDIR`; keep one in the ticket's captures or delete it), and that physical-device tools
+   are not used.
+- The trial's runner is kept as [`03-trial-flow.sh`](../03-trial-flow.sh) (it relaunches the app on WT-iPhone27).
