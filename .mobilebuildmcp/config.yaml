@@ -1,4 +1,5 @@
-# agent-skills 03: MobileBuildMCP reads this from the workspace root — every CLI call and daemon started here,
-# whoever starts it, runs with its Sentry telemetry off. scripts/sim-ui.sh refuses to run without it.
+# agent-skills 03: MobileBuildMCP reads this from its working directory (no parent search): CLI calls run from the
+# repository root and the daemon started for it run with Sentry telemetry off. Use scripts/sim-ui.sh, which runs from
+# the root and refuses to run without this file.
 schemaVersion: 1
 sentryDisabled: true

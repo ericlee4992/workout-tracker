@@ -208,11 +208,14 @@ rerun before diagnosis.
 hand, read what a screen shows — without a UI test (agent-skills 03, trial passed 2026-11-18). It wraps the CLI of
 [MobileBuildMCP](https://github.com/getsentry/MobileBuildMCP) (formerly XcodeBuildMCP), **pinned at 2.7.1** in the
 user-local Node (`npm install -g mobilebuildmcp@2.7.1`; the script refuses another version). Its Sentry telemetry is
-off for every CLI call and daemon in the repository, whoever starts them: `.mobilebuildmcp/config.yaml` says
-`sentryDisabled: true`, which the tool reads from the workspace root before it starts Sentry (the script runs from the
-root, refuses to run without it, and also exports `MOBILEBUILDMCP_SENTRY_DISABLED=true`). A running daemon serves a call
-only when its own registry entry matches the pinned version and it started after that file last changed; otherwise the
-script stops it and the call starts a fresh one. `--socket` overrides are refused.
+off: `.mobilebuildmcp/config.yaml` says `sentryDisabled: true`, which the tool reads from its **working directory**
+(no parent search) before it starts Sentry — so it covers the script's calls (run from the repository root) and the
+repository's daemon (started there), but not a bare `mobilebuildmcp` run from a subdirectory: always go through the
+script, which also exports `MOBILEBUILDMCP_SENTRY_DISABLED=true` and refuses to run without the file. The script clears
+the tool's other environment variables and refuses `--socket` and `--daemon-log-path`, so calls reach this repository's
+daemon; that daemon serves a call only when its own registry entry names this root, the pinned version and a start
+after the config file last changed — otherwise the script stops it (and stops itself if the daemon's status can't be
+read) and the call starts a fresh one.
 Builds, tests and installs stay this file's `xcodebuild` and `simctl` procedures; its `init`, MCP server and physical-
 device tools are not used.
 

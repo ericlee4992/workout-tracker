@@ -1,6 +1,6 @@
 # 03 — Simulator control for agents: MobileBuildMCP trial
 
-Status: **trial passed — in review (round 3)** (branch `ericlee4992/simulator-control` off `main` `eb431b3a`).
+Status: **trial passed — in review (round 4)** (branch `ericlee4992/simulator-control` off `main` `eb431b3a`).
 Type: task (tooling trial)
 
 ## The user's request (2026-11-18)
@@ -103,5 +103,25 @@ started bare, no opt-out in its environment → reused, since the config covers 
 replaced; (5) `--socket x` and `--socket=x` → refused, exit 2; (6) the config file moved away → refused, exit 3;
 (7) no daemon → the call starts one. The whole flow again: 0 failures, 186 s.
 Residual (accepted): the status check and the call are separate commands, so a daemon swapped in between them is not
-re-checked — but any daemon started in the repository reads the config, so telemetry stays off; only the pin is at
-risk, and only from another install racing on the same machine.
+re-checked; only the pin is at risk, and only from another install racing on the same machine. (Round 3 narrowed the
+config's reach: it is read from the working directory, not "every process in the repository".)
+
+### Codex round 3 — not clear (3 × P2, 1 × P3), fixed
+
+[Report](../codex-review-03c.md).
+1. *`MOBILEBUILDMCP_SOCKET` (an environment socket override)*: the script now unsets every `MOBILEBUILDMCP_`,
+   `XCODEBUILDMCP_` and `XCODEBUILDCLI_` variable before re-exporting only the opt-out, and requires the daemon status
+   to name this root.
+2. *An unreadable status read as "not running"*: `read_status` returns failure unless the status command succeeds and
+   says Running (with pid and socket) or Not running; any failure stops the script (exit 4), before and after a stop.
+3. *The registry found through the log path*: the registry is now found by the socket's workspace hash
+   (`workspaces/*-<hash>/state/daemon/daemon.json`) and must name this root, the status pid, 2.7.1 and a start after the
+   config's change; `--daemon-log-path` is refused and `MOBILEBUILDMCP_DAEMON_LOG_PATH` cleared.
+4. *P3 — the config's reach*: DEVELOPMENT, the config file's comment and this ticket now say it is read from the working
+   directory (the script's root and the daemon), not from a subdirectory.
+
+Checked live: a reused daemon kept its pid across calls (A, B); `MOBILEBUILDMCP_SOCKET=/tmp/foreign/d.sock` ignored
+(C); `MOBILEBUILDMCP_DAEMON_LOG_PATH` ignored and the daemon kept across two calls (D); `--daemon-log-path` refused,
+exit 2 (E); a call from `WorkoutTracker/` works (F); a registry naming 2.7.0 → replaced (G); with a fake
+`mobilebuildmcp` first on PATH, an unreadable status → exit 4 before anything runs (H), and an unreadable status after
+a failed stop → exit 4 (I); the whole flow: 0 failures, 170 s (J).
