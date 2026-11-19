@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-11-18: [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) (My settings, D91) uploaded 01:17 EST — a stored-format change: Gate S on the phone before it installs build 17. `main` `8812bfda` (+ this record). Builds 15–16's TestFlight steps were still pending.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-18: [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) (My settings, D91) uploaded 01:17 EST — a stored-format change: Gate S on the phone before it installs build 17. Then the workflow skills `review-round` and `testflight-release` merged (agent-skills 02). `main` `ff346e2e`; GitHub Tests 44259746888 green.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-18)
