@@ -16,7 +16,7 @@ changes" — the four proposed hunks. The six flagged items were left unedited (
    "Reference only" description. Codex reads it through `.agents/skills/` and sees the same description.
 2. `AGENTS.md` (*Local verification is the gate*) — the first-green-run story (run 43588010018, 216 runs, Xcode 26.6,
    Vision) removed from the always-loaded file; DEVELOPMENT → *CI, scanner tooling* already tells it (without the run
-   number and count, which stay in `work-record/dev-speed/` and STATE's archive).
+   number and count, which stay in `work-record/dev-speed/codex-review-ci.md` and STATE).
 3. `AGENTS.md` (*Domain terminology*) — "`CONTEXT.md` and `docs/adr/` are created lazily" was stale: both exist (ADRs
    0001–0002). Now names them.
 4. `.agents/skills/code-review/SKILL.md` (the vendored mattpocock skill; `.claude/skills/code-review` links to it) —
