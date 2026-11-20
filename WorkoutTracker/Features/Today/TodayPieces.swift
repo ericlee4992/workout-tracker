@@ -10,42 +10,58 @@ struct TodayWeekRings: View {
     var summary: WeekSummary
     /// N5: each day's food, keyed by its start of day.
     var food: [Date: FoodDay] = [:]
+    /// Nutrition 16 (proposed, D92): "This week", or an earlier week's dates.
+    var title = "This week"
+    /// Nutrition 16: the day Today shows. With `onSelect`, past days and today are buttons; the selected day's label
+    /// is filled and today's, when another day is picked, is outlined (shape, not colour alone). Without `onSelect`
+    /// (nil) the rings are not buttons and today's label is filled, as before.
+    var selected: Date? = nil
+    var onSelect: ((Date) -> Void)? = nil
+    /// Nutrition 16: earlier weeks — the header's chevrons (next is disabled on the current week).
+    var onPreviousWeek: (() -> Void)? = nil
+    var onNextWeek: (() -> Void)? = nil
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .body) private var ring: CGFloat = 36
 
+    private var picks: Bool { onSelect != nil }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline) {
-                Text("This week").font(look.font.sectionTitle).foregroundStyle(look.textPrimary)
-                Spacer(minLength: 8)
-                Text(headline).font(look.font.subhead).foregroundStyle(look.textSecondary)
-            }
+        let panel = VStack(alignment: .leading, spacing: 14) {
+            header
             if typeSize.isAccessibilitySize {
                 // AX sizes: one row per day, the ring larger and the day's workouts in words.
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: picks ? 4 : 12) {
                     ForEach(summary.days) { day in
-                        HStack(spacing: 14) {
-                            TodayDayRing(day: day, food: food[day.date], size: ring * 1.1)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(day.date, format: .dateTime.weekday(.wide).day())
-                                    .font(look.font.headline).foregroundStyle(look.textPrimary)
-                                Text(detail(day)).font(look.font.subhead).foregroundStyle(look.textSecondary)
-                            }
+                        if let onSelect, !day.isFuture {
+                            Button { onSelect(day.date) } label: { axRow(day) }
+                                .buttonStyle(.lookPressable)
+                                .accessibilityAddTraits(isSelected(day) ? .isSelected : [])
+                                .accessibilityIdentifier(Self.dayID(day.date))
+                        } else {
+                            axRow(day).accessibilityElement(children: .combine)
                         }
-                        .accessibilityElement(children: .combine)
                     }
                 }
             } else {
                 HStack(spacing: 0) {
                     ForEach(summary.days) { day in
-                        VStack(spacing: 8) {
+                        let cell = VStack(spacing: 8) {
                             dayLabel(day)
                             TodayDayRing(day: day, food: food[day.date], size: ring)
                         }
                         .frame(maxWidth: .infinity)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(spoken(day))
+                        if let onSelect, !day.isFuture {
+                            Button { onSelect(day.date) } label: { cell.contentShape(Rectangle()) }
+                                .buttonStyle(.lookPressable)
+                                .accessibilityLabel(spoken(day))
+                                .accessibilityAddTraits(isSelected(day) ? .isSelected : [])
+                                .accessibilityIdentifier(Self.dayID(day.date))
+                        } else {
+                            cell
+                                .accessibilityElement(children: .ignore)
+                                .accessibilityLabel(spoken(day))
+                        }
                     }
                 }
                 // The key: what the ring and the mark mean (N5).
@@ -73,19 +89,113 @@ struct TodayWeekRings: View {
         }
         .padding(look.space.panelPadding)
         .lookSurface(.panel)
-        .accessibilityIdentifier("todayWeek")
+        // With buttons inside, the panel contains them: a container's identifier would otherwise hide theirs.
+        if picks {
+            panel.accessibilityElement(children: .contain).accessibilityIdentifier("todayWeek")
+        } else {
+            panel.accessibilityIdentifier("todayWeek")
+        }
+    }
+
+    /// A day's identifier: "todayDay.2026-11-18".
+    static func dayID(_ date: Date) -> String {
+        "todayDay." + date.formatted(.iso8601.year().month().day())
+    }
+
+    private func isSelected(_ day: WeekDaySummary) -> Bool {
+        guard let selected else { return day.isToday }
+        return Calendar.current.isDate(selected, inSameDayAs: day.date)
+    }
+
+    @ViewBuilder private var header: some View {
+        if let onPreviousWeek {
+            let titleRow = HStack(spacing: 4) {
+                weekButton("chevron.left", label: "Previous week", id: "todayWeekPrevious", action: onPreviousWeek)
+                Text(title).font(look.font.sectionTitle).foregroundStyle(look.textPrimary)
+                    .lineLimit(1).fixedSize()
+                    .accessibilityAddTraits(.isHeader)
+                weekButton("chevron.right", label: "Next week", id: "todayWeekNext", action: onNextWeek)
+            }
+            .padding(.leading, -10)
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 2) {
+                    titleRow
+                    Text(headline).font(look.font.subhead).foregroundStyle(look.textSecondary)
+                }
+            } else {
+                HStack(alignment: .center) {
+                    titleRow
+                    Spacer(minLength: 8)
+                    Text(headline).font(look.font.subhead).foregroundStyle(look.textSecondary)
+                        .multilineTextAlignment(.trailing)
+                }
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline) {
+                Text(title).font(look.font.sectionTitle).foregroundStyle(look.textPrimary)
+                Spacer(minLength: 8)
+                Text(headline).font(look.font.subhead).foregroundStyle(look.textSecondary)
+            }
+        }
+    }
+
+    private func weekButton(_ symbol: String, label: String, id: String, action: (() -> Void)?) -> some View {
+        Button { action?() } label: {
+            Image(systemName: symbol).font(.system(.footnote, weight: .bold))
+                .foregroundStyle(look.textPrimary)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(action == nil)
+        .opacity(action == nil ? 0.3 : 1)
+        .accessibilityLabel(label)
+        .accessibilityIdentifier(id)
+    }
+
+    /// An AX row: the ring, the date (with "Today" on today's), the day in words; the picked row is shaded with a
+    /// check.
+    private func axRow(_ day: WeekDaySummary) -> some View {
+        let marked = picks && isSelected(day)
+        return HStack(spacing: 14) {
+            TodayDayRing(day: day, food: food[day.date], size: ring * 1.1)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(day.date, format: .dateTime.weekday(.wide).day())
+                    .font(look.font.headline).foregroundStyle(look.textPrimary)
+                Text(detail(day)).font(look.font.subhead).foregroundStyle(look.textSecondary)
+                    .multilineTextAlignment(.leading)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if marked {
+                Image(systemName: "checkmark").font(.system(.body, weight: .bold)).foregroundStyle(look.textPrimary)
+                    .accessibilityHidden(true)
+            }
+        }
+        .padding(.vertical, picks ? 6 : 0)
+        .padding(.horizontal, picks ? 8 : 0)
+        .background {
+            if marked { RoundedRectangle(cornerRadius: 14, style: .continuous).fill(look.surfaceRaised) }
+        }
+        .padding(.horizontal, picks ? -8 : 0)
+        .contentShape(Rectangle())
     }
 
     private func dayLabel(_ day: WeekDaySummary) -> some View {
-        VStack(spacing: 2) {
-            Text(day.letter).font(look.font.caption2).foregroundStyle(day.isToday ? look.onAction : look.textSecondary)
+        let filled = isSelected(day)
+        // Nutrition 16: another day picked — today keeps an outline.
+        let outlined = !filled && day.isToday
+        return VStack(spacing: 2) {
+            Text(day.letter).font(look.font.caption2).foregroundStyle(filled ? look.onAction : look.textSecondary)
             Text(day.date, format: .dateTime.day())
                 .font(look.font.subhead.weight(.semibold)).monospacedDigit()
-                .foregroundStyle(day.isToday ? look.onAction : look.textPrimary)
+                .foregroundStyle(filled ? look.onAction : look.textPrimary)
         }
         .padding(.vertical, 5)
         .frame(minWidth: 34)
-        .background { if day.isToday { Capsule().fill(look.action) } }
+        .background {
+            if filled { Capsule().fill(look.action) }
+            else if outlined { Capsule().strokeBorder(look.action, lineWidth: 1.5) }
+        }
     }
 
     /// "3 workouts · 5 days logged" (N5).
@@ -98,7 +208,8 @@ struct TodayWeekRings: View {
 
     /// AX rows: "Pull Day · 55 min · 2,140 of 2,288 cal".
     private func detail(_ day: WeekDaySummary) -> String {
-        var parts = [day.workouts.isEmpty ? (day.isFuture ? "Ahead" : "Rest day")
+        var parts = picks && day.isToday ? ["Today"] : []
+        parts += [day.workouts.isEmpty ? (day.isFuture ? "Ahead" : "Rest day")
                      : day.workouts.map(\.title).joined(separator: ", ") + " · \(day.minutes) min"]
         if !day.isFuture, let food = food[day.date] { parts.append(Self.food(food)) }
         return parts.joined(separator: " · ")
@@ -108,6 +219,7 @@ struct TodayWeekRings: View {
         let date = day.date.formatted(.dateTime.weekday(.wide).day())
         let today = day.isToday ? ", today" : ""
         var text = date + today
+        if picks, day.isFuture { text += ", ahead" }
         if day.workouts.isEmpty { text += day.isFuture ? "" : ", no workout" }
         else { text += ", " + day.workouts.map(\.title).joined(separator: ", ") }
         if !day.isFuture, let food = food[day.date] { text += ", " + Self.food(food) }

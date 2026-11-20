@@ -84,7 +84,7 @@ struct SelectedMealView: View {
             }
             .scrollIndicators(.hidden)
             PrimaryButton("Log to \(meal.label)") {
-                do { onLogged(try FoodLog.log(savedMeal, meal: meal, in: context)) }
+                do { onLogged(try FoodLog.log(savedMeal, meal: meal, at: TodayDayPrototype.logDate(for: meal) /* PROTOTYPE (nutrition 16) */, in: context)) }
                 catch { failure = error.localizedDescription }
             }
             .padding(.horizontal, look.space.margin)

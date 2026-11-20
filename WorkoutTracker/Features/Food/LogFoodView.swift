@@ -111,11 +111,13 @@ struct LogFoodView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
-                    LookNavTitle("Log food")
+                    // PROTOTYPE (nutrition 16): "Tuesday, Nov 18" when logging to a picked past day; nil otherwise.
+                    LookNavTitle("Log food", subtitle: TodayDayPrototype.logDaySubtitle)
                     mealChips
                     tabBar
                     searchField
-                    if tab == .all && searching { describeRow }
+                    // PROTOTYPE (nutrition 16): Estimate logs at once at now — hidden while logging to a past day.
+                    if tab == .all && searching && !TodayDayPrototype.logsToPastDay { describeRow }
                     content
                     if tab == .all && searching { onlineSection }
                     // At accessibility sizes the command scrolls with the list: pinned, it left room for one food row.
@@ -133,14 +135,15 @@ struct LogFoodView: View {
         .lookScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            // PROTOTYPE (nutrition 16): the scan logs at now — hidden while logging to a past day.
+            if !TodayDayPrototype.logsToPastDay { ToolbarItem(placement: .topBarTrailing) {
                 Button { showScan = true } label: {
                     Image(systemName: "camera.viewfinder").font(.system(.body, weight: .semibold))
                         .foregroundStyle(look.textPrimary)
                 }
                 .accessibilityLabel("Scan food")
                 .accessibilityIdentifier("logFoodScan")
-            }
+            } }
         }
         .sheet(isPresented: $signingIn) { AccountSignInSheet() }
         .fullScreenCover(isPresented: $showScan) {
@@ -311,7 +314,7 @@ struct LogFoodView: View {
                                                        serving: food.servingText),
                            id: food.persistentModelID, identifier: food.name,
                            open: { selectedFromSearch = false; selected = food },
-                           log: { try FoodLog.log(food, meal: meal, source: tab == .all ? .recent : .saved, in: context) })
+                           log: { try FoodLog.log(food, meal: meal, at: TodayDayPrototype.logDate(for: meal) /* PROTOTYPE (nutrition 16) */, source: tab == .all ? .recent : .saved, in: context) })
                 }
             }
             credits(shownFoods.map(\.databaseID))
@@ -421,7 +424,7 @@ struct LogFoodView: View {
             Button {
                 do {
                     let saved = try FoodDatabase.save(food, in: context)
-                    let receipt = try FoodLog.log(saved, meal: meal, source: .search, in: context)
+                    let receipt = try FoodLog.log(saved, meal: meal, at: TodayDayPrototype.logDate(for: meal) /* PROTOTYPE (nutrition 16) */, source: .search, in: context)
                     withAnimation(motion) {
                         logged.insert(saved.persistentModelID)
                         self.receipt = receipt
@@ -455,7 +458,7 @@ struct LogFoodView: View {
                            subtitle: "\(FoodCopy.calories(item.macros.calories)) · \(item.orderedItems.map(\.name).joined(separator: ", "))",
                            id: item.persistentModelID, identifier: "meal.\(item.name)",
                            open: { selectedMeal = item },
-                           log: { try FoodLog.log(item, meal: meal, in: context) })
+                           log: { try FoodLog.log(item, meal: meal, at: TodayDayPrototype.logDate(for: meal) /* PROTOTYPE (nutrition 16) */, in: context) })
                 }
             }
             credits(shownMeals.flatMap { $0.orderedItems.map { $0.savedFood?.databaseID } })
@@ -565,6 +568,8 @@ struct LogFoodView: View {
 
 /// Today's "Log food" pill (D68; the approved prototype's `SoftLogFoodPill`): black, above the tab bar, Today only.
 struct LogFoodPill: View {
+    /// Nutrition 16 (proposed): "Log to Tuesday" on a picked past day.
+    var title = "Log food"
     var action: () -> Void
     /// N7: Scan food, a round camera button beside the pill (one tap from Today to the camera).
     var scan: (() -> Void)?
@@ -597,7 +602,7 @@ struct LogFoodPill: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: "plus").font(.system(.subheadline, weight: .bold))
-                Text("Log food").font(.system(.headline, weight: .semibold))
+                Text(title).font(.system(.headline, weight: .semibold))
             }
             .foregroundStyle(look.onAction)
             .padding(.horizontal, 22)

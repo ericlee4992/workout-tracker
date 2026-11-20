@@ -85,8 +85,9 @@ struct SelectedFoodView: View {
             .scrollIndicators(.hidden)
             PrimaryButton("Log to \(meal.label)") {
                 do {
-                    onLogged(try FoodLog.log(food, servings: servings, option: option, meal: meal, source: source,
-                                             in: context))
+                    onLogged(try FoodLog.log(food, servings: servings, option: option, meal: meal,
+                                             at: TodayDayPrototype.logDate(for: meal), // PROTOTYPE (nutrition 16)
+                                             source: source, in: context))
                 }
                 catch { failure = error.localizedDescription }
             }
@@ -285,7 +286,9 @@ struct ManualAddView: View {
                 guard let nutrition else { return }
                 do {
                     onLogged(try FoodLog.logManual(name: name, serving: ServingText.parse(serving),
-                                                   nutrition: nutrition, meal: meal, in: context))
+                                                   nutrition: nutrition, meal: meal,
+                                                   at: TodayDayPrototype.logDate(for: meal), // PROTOTYPE (nutrition 16)
+                                                   in: context))
                 } catch {
                     failure = error.localizedDescription
                 }
