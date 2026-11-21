@@ -1,10 +1,10 @@
 # N16 — Pick a day on Today: see it and log food to it
 
 Type: feature
-Status: **prototype round 2 (the user's answers applied), waiting for the user's check** (2026-11-20)
+Status: **built — in Codex review** (2026-11-20; the user approved the prototype without the Back to Today strip)
 Implementer: Claude; Reviewer: Codex (a Paseo Codex agent in this workspace), to "clear".
 Branch: `ericlee4992/today-pick-day` off `main` `cb364043` (Paseo worktree `~/.paseo/worktrees/1qmeipq9/today-pick-day`).
-Decision: **D92** (proposed; the user's answers of 2026-11-20 folded in, approval pending the round-2 check). Builds on D68 (Today), D70 (dated goals), D77 (Up next), N5 (Today's food), N10 (a day's
+Decision: **D92** (approved 2026-11-20). Builds on D68 (Today), D70 (dated goals), D77 (Up next), N5 (Today's food), N10 (a day's
 food page, `DayFoodView`), D82/D83 (scans).
 
 ## The ask (the user, 2026-11-20)
@@ -183,3 +183,65 @@ time follows the meal it opened with, not one changed on the label screen.
   lastUsedAt at now) and the reset rule. UI tests for pick → log → back, earlier weeks, and AXL. Remove the prototype
   file, its hooks and its UI test.
 - Codex review rounds per the `review-round` skill (a new Paseo Codex agent in this workspace).
+
+## The user's go (2026-11-20)
+
+"lets just get rid of back to today button. people can just click the day. start building" — no Back to Today strip
+or button: **today's ring is the way back**. Prototype kept at tag `design/today-pick-day-prototype` (`2bb4bdf1`).
+
+### 2026-11-20 — the real build
+
+- **Prototype removed:** `TodayDayPrototype.swift`, its hooks and `TodayDayPrototypeUITests`; the prototype captures
+  are replaced by the real ones.
+- **Domain:** `Domain/TodayDayPick.swift` — `TodayDayPick` (the picked day and the shown week; `pick`, `moveWeek`,
+  `shownDay`/`showsPastDay`/`logDay`/`shownWeek`, `resetsOnReturn`, `weekTitle`) and `FoodLogDay` (the meal's usual
+  time on a picked past day; nil for none or today; `title`). `WeekSummaryMath.summary(…weekOf:)` shows an earlier week
+  (its days neither today nor ahead; only that week and the one before read). `FoodLog.log` (food, meal), `logManual`
+  and `FoodScan.logLabel` take `loggedAt:` — **only the entry's `loggedAt` moves; `createdAt` and the food's / meal's
+  `lastUsedAt` stay now**, so Recently logged keeps its order.
+- **The day is passed explicitly** (no shared state): Today snapshots `pick.logDay` into `logDay` when Log food or the
+  camera is tapped → `LogFoodView(day:)` (its subtitle, the +, search results, Estimate) → `SelectedFoodView(day:)`,
+  `SelectedMealView(day:)`, `ManualAddView(day:)`, `FoodScanFlow(day:)` (meal photo — camera and library, the picked
+  day winning over a library photo's date — the label via `LabelFoodView(day:)`, the barcode's `SelectedFoodView`), and
+  Today's Manual Add from a scan. `FoodScanQueue` carries `pickedDay` (kept on retry): a picked day's log lists its
+  own scans; today lists every scan as before (so a failed one sent from a picked day is never out of sight); a scan
+  logged to its picked day leaves no "logged earlier" card.
+- **Today:** `@State pick` (kept across tab switches); back to today when the app returns from the background on
+  another day or after an hour (`scenePhase`); the rings follow a picked day's week, so a day picked this week stays
+  in view when the screen is left open into the next. Title, inline title, fuel card (`isToday: false`, Burned from
+  the day's workouts), Training (Resume only), "Tuesday's log" / "Nothing logged on Tuesday.", scans. The pill and
+  the camera are unchanged.
+- **No stored-format change:** no model or schema edit (`loggedAt` exists). No migration, no Gate S.
+- **Apple Health (D74):** `HealthNutritionSync.writeFood` reconciles every entry at its own `loggedAt` with no date
+  window, so a back-dated entry is written on its day and follows its edits and deletes — no change needed.
+- **Self-check fixes before review:** a failed scan from a picked day was only on that day (errors read as absence) →
+  today lists it too; a day picked this week fell out of the rings at a week's end → the rings follow the picked day.
+- **README:** Food logging gains "Pick a day"; `docs/readme/today.png` retaken (the week now has ‹ ›).
+- **Tests:** `WorkoutTrackerTests/TodayDayPickTests.swift` (15: picking, today's ring back, days ahead, midnight, a
+  pick no longer past, week moves and titles, an earlier week's summary, the week rollover, the reset rule, the meal
+  times, logging food / meal / Manual Add / label to a picked day with `createdAt` and "last used" at now, unchanged
+  without a day). `WorkoutTrackerUITests/TodayPickDayUITests.swift` (6: pick → log → today's ring back, a day ahead is
+  no button, camera and library scans to the picked day with nothing on today and no leftover card, earlier weeks,
+  captures light Default and dark AccessibilityL); added to the TodayTrain plan (`scripts/test-plans.py`).
+- **Captures:** [`../captures/16/`](../captures/16/) — `1-today`, `2-past-day`, `3-past-day-log`, `4-log-food`,
+  `5-last-week` in light Default and dark AccessibilityL, and a sheet for each.
+- **Known (by design):** an earlier day before any nutrition goal shows "Set your goals" (D70's dated goals, as N10's
+  day page).
+
+
+### Verification (the real build, 2026-11-20)
+
+Scope (DEVELOPMENT → Verification scope, "Ticket done" for a new feature on Today and Log food, touching the scan
+flow and a Domain week summary with several callers): the Unit plan + the ticket's area plan, TodayTrain (Today,
+Log food, Scan food, barcode, Korean food, Up next, templates — it includes the new class). Captures of the changed
+screens light Default and dark AccessibilityL (from `TodayPickDayUITests`).
+
+```
+Verified: Unit plan — 1344/1344, exit 0, build/results/n16-unitplan.xcresult
+Verified: TodayTrain plan — 86/86 (0 skipped), exit 0, build/results/n16-todaytrain.xcresult (~50 min)
+Verified: focused — unit suites 65/65 (n16-unit.xcresult); TodayPickDayUITests 6/6 (n16-ui.xcresult); build exit 0
+Not verified: on a phone; Apple Health writing a back-dated entry (code read: no date window, unchanged); a label
+  scan and Estimate on a picked day driven in a UI test (unit-tested at FoodScan.logLabel; Estimate by code read);
+  the reset after an hour away / on another day in a UI test (unit-tested rule; the scenePhase hook by code read)
+Known flaky: none seen
+```

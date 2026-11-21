@@ -1,20 +1,18 @@
 # Current project state
 
-Updated **2026-11-20: N16 pick a day on Today — prototype round 2 (the user's answers applied) waiting for the user's check (branch `ericlee4992/today-pick-day`, worktree `~/.paseo/worktrees/1qmeipq9/today-pick-day`; D92 proposed). Earlier: the prompt audit fixes merged (agent-skills 04); `scripts/sim-ui.sh` (agent-skills 03); [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) (My settings) uploaded 2026-11-18 — Gate S on the phone before it installs build 17.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-20: N16 pick a day on Today — built (prototype approved without the Back to Today strip), tests running then Codex review (branch `ericlee4992/today-pick-day`, worktree `~/.paseo/worktrees/1qmeipq9/today-pick-day`; D92). Earlier: the prompt audit fixes merged (agent-skills 04); `scripts/sim-ui.sh` (agent-skills 03); [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) (My settings) uploaded 2026-11-18 — Gate S on the phone before it installs build 17.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-20)
 
-- **NOW (resume here) — [N16, pick a day on Today](../work-record/nutrition/issues/16-pick-a-day-on-today.md): prototype
-  round 2, waiting for the user's check** (ask 2026-11-20: select days on Today to go back and edit food logging). The
-  user's answers are in (Today turns into the day; "Back to Today" strip; earlier weeks; Log food and the camera look
-  the same on every day and log to it, scans and library photos included; the meal's time) — D92 still marked
-  proposed until they check. Branch `ericlee4992/today-pick-day` off `main` `cb364043`, Paseo worktree
-  `~/.paseo/worktrees/1qmeipq9/today-pick-day`; not merged. Throwaway `Features/Today/TodayDayPrototype.swift` +
-  `TodayDayPrototypeUITests` behind `-todayPickDayPrototype` (add `-uiTestTerra` for scans). **Verified:** build exit 0;
-  prototype UI tests 3/3 (`build/results/ntd-proto2.xcresult`); captures in `work-record/nutrition/captures/16-prototype/`.
-  **No stored-format change expected.** **Next:** the user's OK → real build (remove the prototype; a logged-at separate
-  from `createdAt`/`lastUsedAt`; route every log path; Health check; reset rule; tests), Codex review.
+- **NOW (resume here) — [N16, pick a day on Today](../work-record/nutrition/issues/16-pick-a-day-on-today.md): built,
+  in verification and Codex review** (ask 2026-11-20; the user approved the prototype minus the Back to Today strip —
+  today's ring goes back; D92 approved). Branch `ericlee4992/today-pick-day` off `main` `cb364043`, Paseo worktree
+  `~/.paseo/worktrees/1qmeipq9/today-pick-day`; not merged. Prototype at tag `design/today-pick-day-prototype`.
+  **No stored-format change** (no migration, no Gate S). Focused checks: unit suites 65/65
+  (`build/results/n16-unit.xcresult`), `TodayPickDayUITests` 6/6 (`build/results/n16-ui.xcresult`). Running: Unit plan
+  + TodayTrain plan (`build/n16-run.sh`, exits in `build/n16-exits.txt`). **Next:** read the results → Codex round 1
+  (`work-record/nutrition/codex-review-n16-prompt.md` → `codex-review-n16.md`) → fixes → merge `--ff-only` into `main`.
   `scripts/sim-ui.sh` taps did nothing this session (snapshots fine) — recorded in the ticket.
 - **Pending — [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) uploaded 2026-11-18 01:17 EST** (`main` `8812bfda`; machine-settings 01 My settings, D91; no What's New; the user's What to Test note; no server change; Codex release review clear, Unit 1329/1329). **Stored-format change (`016aa14c…`): Gate S on the phone before installing.** **The user's steps:** processing → Developer → Gate S (with Claude) → install → try My settings → Friends with the What to Test note → Submit.
 - **Done 2026-11-19 — [agent-skills 04, prompt audit fixes](../work-record/agent-skills/issues/04-prompt-audit-fixes.md)**

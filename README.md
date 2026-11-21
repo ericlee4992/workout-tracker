@@ -17,7 +17,7 @@ machine. During a workout, an exercise's chart icon opens its progress chart wit
 machine exercise can switch between each machine it was logged on (or all of them).
 
 <!-- Screenshots in docs/readme/: the capture UI tests' Soft look (dark, default text size, built-in sample data),
-taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resized to 603 px wide. Retake them when a shown screen changes visibly (AGENTS.md). -->
+taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11; Today retaken 2026-11-20 for N16) and resized to 603 px wide. Retake them when a shown screen changes visibly (AGENTS.md). -->
 <p>
 <img src="docs/readme/today.png" width="150" alt="Today: the week's rings, calories and protein left, and the workout up next">
 <img src="docs/readme/workout.png" width="150" alt="The Train tab: gym, the template up next, start buttons and other templates">
@@ -73,6 +73,9 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
   changes the goal — and protein to go; without goals it offers to set them. Today's log lists the food by meal; tap an
   entry to change its servings, meal or numbers, or delete it with Undo — or bookmark it into Saved foods (the food
   it came from, or a new food made from the entry) *(on this branch)*.
+  **Pick a day** *(on this branch, not yet in TestFlight)*: tap a ring and Today turns into that day — its calories
+  against that day's goal, its food and workouts — and Log food and the camera log to it (at the meal's usual time);
+  tap today's ring to go back, and ‹ › or a swipe on the week reach earlier weeks.
   **Log food** opens the meal (preset by the time of day), tabs **All / My foods / My meals / Saved foods** and a
   search: your own foods first, then (signed in) more foods from USDA FoodData Central — or, for a search in Korean
   *(on this branch, not yet in TestFlight)*, Korean dishes, plain foods and products from Korea's Ministry of Food and
