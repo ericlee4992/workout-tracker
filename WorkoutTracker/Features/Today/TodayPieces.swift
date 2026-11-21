@@ -10,14 +10,14 @@ struct TodayWeekRings: View {
     var summary: WeekSummary
     /// N5: each day's food, keyed by its start of day.
     var food: [Date: FoodDay] = [:]
-    /// Nutrition 16 (proposed, D92): "This week", or an earlier week's dates.
+    /// N16 (D92): "This week", "Last week", or an earlier week's dates.
     var title = "This week"
-    /// Nutrition 16: the day Today shows. With `onSelect`, past days and today are buttons; the selected day's label
+    /// N16: the day Today shows. With `onSelect`, past days and today are buttons; the selected day's label
     /// is filled and today's, when another day is picked, is outlined (shape, not colour alone). Without `onSelect`
     /// (nil) the rings are not buttons and today's label is filled, as before.
     var selected: Date? = nil
     var onSelect: ((Date) -> Void)? = nil
-    /// Nutrition 16: earlier weeks — the header's chevrons (next is disabled on the current week).
+    /// N16: earlier weeks — the header's chevrons (next is disabled on the current week).
     var onPreviousWeek: (() -> Void)? = nil
     var onNextWeek: (() -> Void)? = nil
     @Environment(\.look) private var look
@@ -182,7 +182,7 @@ struct TodayWeekRings: View {
 
     private func dayLabel(_ day: WeekDaySummary) -> some View {
         let filled = isSelected(day)
-        // Nutrition 16: another day picked — today keeps an outline.
+        // N16: another day picked — today keeps an outline.
         let outlined = !filled && day.isToday
         return VStack(spacing: 2) {
             Text(day.letter).font(look.font.caption2).foregroundStyle(filled ? look.onAction : look.textSecondary)

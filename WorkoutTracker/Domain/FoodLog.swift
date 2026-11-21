@@ -342,10 +342,16 @@ enum FoodLog {
     /// Logs `servings` of `food` to `meal`: one entry (a snapshot), and the food moves to the top of Recently logged.
     /// `option` (N8): one of the food's other servings (`servingChoices`) — the entry then keeps that serving, its
     /// nutrition scaled by weight from the main serving.
+    ///
+    /// `loggedAt` (N16, D92): when it was eaten, for a picked earlier day (`FoodLogDay`); nil = `date`. Only the
+    /// entry's `loggedAt` moves: its `createdAt` and the food's "last used" stay `date` (now), so Recently logged keeps
+    /// its order — back-dating them would push a food just logged down the list.
     @discardableResult
     static func log(_ food: SavedFood, servings: Double = 1, option: ServingOption? = nil, meal: MealSlot,
-                    at date: Date = .now, source: FoodSource = .saved, in context: ModelContext) throws -> FoodLogReceipt {
+                    at date: Date = .now, loggedAt: Date? = nil, source: FoodSource = .saved,
+                    in context: ModelContext) throws -> FoodLogReceipt {
         let entry = FoodEntry(logging: food, servings: servings, meal: meal, at: date, source: source)
+        if let loggedAt { entry.loggedAt = loggedAt }
         if let option, let factor = scale(of: option, in: food) {
             entry.servingValue = option.value
             entry.servingUnit = option.unit
@@ -367,12 +373,12 @@ enum FoodLog {
         return receipt
     }
 
-    /// Logs one of My meals to `meal`: one entry per item, from the item's own snapshot.
+    /// Logs one of My meals to `meal`: one entry per item, from the item's own snapshot. `loggedAt` as `log(_:…)`.
     @discardableResult
-    static func log(_ savedMeal: SavedMeal, meal: MealSlot, at date: Date = .now,
+    static func log(_ savedMeal: SavedMeal, meal: MealSlot, at date: Date = .now, loggedAt: Date? = nil,
                     in context: ModelContext) throws -> FoodLogReceipt {
         let entries = savedMeal.orderedItems.map { item in
-            FoodEntry(loggedAt: date, meal: meal, name: item.name, brand: item.brand, servings: item.servings,
+            FoodEntry(loggedAt: loggedAt ?? date, meal: meal, name: item.name, brand: item.brand, servings: item.servings,
                       servingValue: item.servingValue, servingUnit: item.servingUnit, servingGrams: item.servingGrams,
                       calories: item.calories, proteinGrams: item.proteinGrams, carbsGrams: item.carbsGrams,
                       fatGrams: item.fatGrams, fiberGrams: item.fiberGrams, sugarGrams: item.sugarGrams,
@@ -388,13 +394,13 @@ enum FoodLog {
     }
 
     /// Manual Add (D81): a one-off entry that creates no food. The name is optional (blank = quick add); a blank serving
-    /// is one serving.
+    /// is one serving. `loggedAt` as `log(_:…)`.
     @discardableResult
     static func logManual(name: String, serving: ServingText?, nutrition: FoodNutrition, meal: MealSlot,
-                          at date: Date = .now, in context: ModelContext) throws -> FoodLogReceipt {
+                          at date: Date = .now, loggedAt: Date? = nil, in context: ModelContext) throws -> FoodLogReceipt {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let serving = serving ?? ServingText(value: 1, unit: ServingText.defaultUnit)
-        let entry = FoodEntry(loggedAt: date, meal: meal, name: trimmed, servings: 1, servingValue: serving.value,
+        let entry = FoodEntry(loggedAt: loggedAt ?? date, meal: meal, name: trimmed, servings: 1, servingValue: serving.value,
                               servingUnit: serving.unit, servingGrams: serving.grams, calories: nutrition.calories,
                               proteinGrams: nutrition.proteinGrams, carbsGrams: nutrition.carbsGrams,
                               fatGrams: nutrition.fatGrams, fiberGrams: nutrition.fiberGrams,

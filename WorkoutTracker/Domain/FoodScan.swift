@@ -187,17 +187,20 @@ enum FoodScan {
     }
 
     /// A label logged (N7): as one of My foods when the user keeps "Save to My foods" on — then it is in My foods
-    /// for the next time — else as a one-off entry. Either way the entry's source is the label.
+    /// for the next time — else as a one-off entry. Either way the entry's source is the label. `loggedAt` (N16): a
+    /// picked earlier day's time (`FoodLogDay`), moving only the entry's `loggedAt`.
     @discardableResult
     static func logLabel(_ draft: FoodDraft, servings: Double, meal: MealSlot, saveToMyFoods: Bool, at date: Date = .now,
-                         in context: ModelContext) throws -> FoodLogReceipt {
+                         loggedAt: Date? = nil, in context: ModelContext) throws -> FoodLogReceipt {
         if saveToMyFoods {
             let food = try FoodLog.createFood(draft, at: date, in: context)
-            return try FoodLog.log(food, servings: servings, meal: meal, at: date, source: .label, in: context)
+            return try FoodLog.log(food, servings: servings, meal: meal, at: date, loggedAt: loggedAt, source: .label,
+                                   in: context)
         }
         let n = draft.nutrition
         let brand = draft.brand?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let entry = FoodEntry(loggedAt: date, meal: meal, name: draft.name.trimmingCharacters(in: .whitespacesAndNewlines),
+        let entry = FoodEntry(loggedAt: loggedAt ?? date, meal: meal,
+                              name: draft.name.trimmingCharacters(in: .whitespacesAndNewlines),
                               brand: brand?.isEmpty == false ? brand : nil, servings: servings,
                               servingValue: draft.serving.value, servingUnit: draft.serving.unit,
                               servingGrams: draft.serving.grams, calories: n.calories, proteinGrams: n.proteinGrams,

@@ -20,6 +20,7 @@
         "LogFoodUITests",
         "LogFoodFlowUITests",
         "TodayFoodUITests",
+        "TodayPickDayUITests",
         "ScanFoodUITests",
         "BarcodeSearchUITests",
         "KoreanFoodUITests",

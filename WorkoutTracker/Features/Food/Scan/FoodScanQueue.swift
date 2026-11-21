@@ -41,6 +41,10 @@ final class FoodScanQueue {
         /// with Open until removed (codex-review-n7 S2). The entry's ID, resolved against the live entries each time —
         /// after Delete and Undo the entry is a new object with the same ID (codex-review-n7b R2-S1).
         var loggedEarlierID: UUID?
+        /// N16 (D92): the earlier day picked on Today that this scan logs to (its start): its card shows on that day
+        /// (and on today) while in flight or failed, and leaves once logged — the entry is in that day's log. nil = not
+        /// sent from a picked day.
+        var pickedDay: Date? = nil
     }
 
     private(set) var pending: [Pending] = []
@@ -50,16 +54,18 @@ final class FoodScanQueue {
     private static let notificationsAskedKey = "foodScan.notificationsAsked"
 
     /// A meal photo: its card appears at once and the estimate is logged when it arrives.
-    func startPhoto(jpeg: Data, meal: MealSlot, eatenAt: Date, client: AIServerClient?, context: ModelContext) {
+    func startPhoto(jpeg: Data, meal: MealSlot, eatenAt: Date, pickedDay: Date? = nil, client: AIServerClient?,
+                    context: ModelContext) {
         start(Pending(jpeg: jpeg, preview: UIImage(data: jpeg), text: nil, meal: meal, eatenAt: eatenAt,
-                      startedAt: .now), client: client, context: context)
+                      startedAt: .now, pickedDay: Self.pastDay(pickedDay)), client: client, context: context)
     }
 
     /// Describe what you ate: logged at once like a photo (D83), its card on Today meanwhile.
-    func startDescribe(_ text: String, meal: MealSlot, client: AIServerClient?, context: ModelContext) {
+    /// N16: from a picked earlier day (`day`), logged to it at the meal's time.
+    func startDescribe(_ text: String, meal: MealSlot, day: Date? = nil, client: AIServerClient?, context: ModelContext) {
         start(Pending(jpeg: nil, preview: nil, text: text, meal: meal,
-                      eatenAt: TodayDayPrototype.logDate(for: meal), // PROTOTYPE (nutrition 16): the picked day
-                      startedAt: .now),
+                      eatenAt: FoodLogDay.loggedAt(meal: meal, on: day) ?? .now, startedAt: .now,
+                      pickedDay: Self.pastDay(day)),
               client: client, context: context)
     }
 
@@ -67,7 +73,23 @@ final class FoodScanQueue {
         guard let index = pending.firstIndex(where: { $0.id == id }) else { return }
         let old = pending.remove(at: index)
         start(Pending(jpeg: old.jpeg, preview: old.preview, text: old.text, meal: old.meal, eatenAt: old.eatenAt,
-                      startedAt: .now), client: client, context: context)
+                      startedAt: .now, pickedDay: old.pickedDay), client: client, context: context)
+    }
+
+    /// A picked day's start while it is an earlier day; nil for none or today.
+    private static func pastDay(_ day: Date?, now: Date = .now) -> Date? {
+        guard let day else { return nil }
+        let start = Calendar.current.startOfDay(for: day)
+        return start < Calendar.current.startOfDay(for: now) ? start : nil
+    }
+
+    /// N16: the scans a day's log shows — today: every one, as before (one sent from a picked day too while in
+    /// flight or failed, so a failure is never out of sight; an earlier-day library photo's stays with Open, D83); a
+    /// picked earlier day: its own, in flight or failed (gone once logged — the entry is in that day's log).
+    func shown(on day: Date, now: Date = .now) -> [Pending] {
+        let calendar = Calendar.current
+        guard calendar.startOfDay(for: day) < calendar.startOfDay(for: now) else { return pending }
+        return pending.filter { $0.pickedDay.map { calendar.isDate($0, inSameDayAs: day) } ?? false }
     }
 
     func dismiss(_ id: UUID) {
@@ -139,7 +161,8 @@ final class FoodScanQueue {
             do {
                 let entry = try FoodScan.log(estimate, photo: scan.jpeg, source: scan.text == nil ? .photo : .describe,
                                              meal: scan.meal, at: scan.eatenAt, in: context)
-                if Calendar.current.isDateInToday(entry.loggedAt) {
+                // Logged to today, or to the day picked for it (N16: it is in that day's log): the card goes.
+                if Calendar.current.isDateInToday(entry.loggedAt) || scan.pickedDay != nil {
                     pending.remove(at: index)
                 } else {
                     pending[index].loggedEarlierID = entry.id

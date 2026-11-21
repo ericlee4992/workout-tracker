@@ -9,6 +9,8 @@ import SwiftUI
 struct SelectedMealView: View {
     var savedMeal: SavedMeal
     var meal: MealSlot
+    /// N16 (D92): the picked earlier day this logs to (that day at the meal's time, `FoodLogDay`); nil = now.
+    var day: Date? = nil
     var onLogged: (FoodLogReceipt) -> Void
     var onDeleted: () -> Void
     @Environment(\.look) private var look
@@ -84,7 +86,8 @@ struct SelectedMealView: View {
             }
             .scrollIndicators(.hidden)
             PrimaryButton("Log to \(meal.label)") {
-                do { onLogged(try FoodLog.log(savedMeal, meal: meal, at: TodayDayPrototype.logDate(for: meal) /* PROTOTYPE (nutrition 16) */, in: context)) }
+                do { onLogged(try FoodLog.log(savedMeal, meal: meal, loggedAt: FoodLogDay.loggedAt(meal: meal, on: day),
+                                               in: context)) }
                 catch { failure = error.localizedDescription }
             }
             .padding(.horizontal, look.space.margin)

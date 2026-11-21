@@ -160,11 +160,6 @@ struct WorkoutTrackerApp: App {
             do { try FoodSampleFixture.seedCharts(in: modelContainer.mainContext) }
             catch { assertionFailure("Nutrition charts fixture failed: \(error)") }
         }
-        // PROTOTYPE (nutrition 16): earlier weeks' food, for picking a day on Today.
-        if TodayDayPrototype.isEnabled {
-            do { try TodayDayPrototype.seed(in: modelContainer.mainContext) }
-            catch { assertionFailure("Today day-pick prototype seed failed: \(error)") }
-        }
         // First-launch unit preference: derive from the locale measurement
         // system (US → lb, else kg). Idempotent; never blocks launch.
         do {

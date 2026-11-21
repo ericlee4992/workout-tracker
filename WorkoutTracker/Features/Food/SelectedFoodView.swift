@@ -9,6 +9,8 @@ import SwiftUI
 struct SelectedFoodView: View {
     var food: SavedFood
     var meal: MealSlot
+    /// N16 (D92): the picked earlier day this logs to (that day at the meal's time, `FoodLogDay`); nil = now.
+    var day: Date? = nil
     var source: FoodSource
     var onLogged: (FoodLogReceipt) -> Void
     var onDeleted: () -> Void = {}
@@ -86,8 +88,8 @@ struct SelectedFoodView: View {
             PrimaryButton("Log to \(meal.label)") {
                 do {
                     onLogged(try FoodLog.log(food, servings: servings, option: option, meal: meal,
-                                             at: TodayDayPrototype.logDate(for: meal), // PROTOTYPE (nutrition 16)
-                                             source: source, in: context))
+                                             loggedAt: FoodLogDay.loggedAt(meal: meal, on: day), source: source,
+                                             in: context))
                 }
                 catch { failure = error.localizedDescription }
             }
@@ -246,6 +248,8 @@ struct SelectedFoodView: View {
 /// they disagree with the total — shown, never blocked (the ticket).
 struct ManualAddView: View {
     var meal: MealSlot
+    /// N16 (D92): the picked earlier day this logs to (that day at the meal's time, `FoodLogDay`); nil = now.
+    var day: Date? = nil
     var onLogged: (FoodLogReceipt) -> Void
     @Environment(\.look) private var look
     @Environment(\.modelContext) private var context
@@ -287,8 +291,7 @@ struct ManualAddView: View {
                 do {
                     onLogged(try FoodLog.logManual(name: name, serving: ServingText.parse(serving),
                                                    nutrition: nutrition, meal: meal,
-                                                   at: TodayDayPrototype.logDate(for: meal), // PROTOTYPE (nutrition 16)
-                                                   in: context))
+                                                   loggedAt: FoodLogDay.loggedAt(meal: meal, on: day), in: context))
                 } catch {
                     failure = error.localizedDescription
                 }

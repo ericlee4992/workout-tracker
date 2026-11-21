@@ -10,6 +10,10 @@ import SwiftUI
 ///
 /// The eye lands on the list (what most logs are); the + on each row is the action, quiet until tapped.
 struct LogFoodView: View {
+    /// N16 (D92): the picked earlier day on Today — everything logged here goes to it (that day at the meal's time,
+    /// `FoodLogDay`), and the title says which day. nil = today (now). Taken when Log food opened, so a later change on
+    /// Today cannot move where this visit logs.
+    var day: Date? = nil
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -77,6 +81,9 @@ struct LogFoodView: View {
         return online.foods.filter { !shown.contains($0.id) }
     }
 
+    /// When a food logged now was eaten: the picked day at the meal's time, or nil (now).
+    private var loggedAt: Date? { FoodLogDay.loggedAt(meal: meal, on: day) }
+
     private var searching: Bool { !search.trimmingCharacters(in: .whitespaces).isEmpty }
 
     /// The tab's foods. Searching on All looks through every food the user has, not only the recent ones.
@@ -111,8 +118,7 @@ struct LogFoodView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
-                    // PROTOTYPE (nutrition 16): "Tuesday, Nov 18" when logging to a picked past day; nil otherwise.
-                    LookNavTitle("Log food", subtitle: TodayDayPrototype.logDaySubtitle)
+                    LookNavTitle("Log food", subtitle: day.map(FoodLogDay.title))
                     mealChips
                     tabBar
                     searchField
@@ -145,7 +151,7 @@ struct LogFoodView: View {
         }
         .sheet(isPresented: $signingIn) { AccountSignInSheet() }
         .fullScreenCover(isPresented: $showScan) {
-            FoodScanFlow(meal: meal, onDone: { dismiss() }, onManualAdd: { route = .manualAdd })
+            FoodScanFlow(meal: meal, day: day, onDone: { dismiss() }, onManualAdd: { route = .manualAdd })
         }
         .overlay(alignment: .bottom) { if let receipt { undoToast(receipt) } }
         .sensoryFeedback(.success, trigger: receipt?.entries.first?.id) { _, new in new != nil }
@@ -159,7 +165,7 @@ struct LogFoodView: View {
         }
         .task(id: onlineQuery) { await searchOnline(onlineQuery) }
         .navigationDestination(item: $selected) { food in
-            SelectedFoodView(food: food, meal: meal, source: selectedFromSearch ? .search : tab == .all ? .recent : .saved,
+            SelectedFoodView(food: food, meal: meal, day: day, source: selectedFromSearch ? .search : tab == .all ? .recent : .saved,
                              onLogged: { receipt in selected = nil; show(receipt) },
                              onDeleted: {
                                  // Its Undo would have no food to put back; the entries it logged stay.
@@ -169,13 +175,13 @@ struct LogFoodView: View {
                              notListed: selectedFromSearch ? selectedNotListed : [])
         }
         .navigationDestination(item: $selectedMeal) { savedMeal in
-            SelectedMealView(savedMeal: savedMeal, meal: meal,
+            SelectedMealView(savedMeal: savedMeal, meal: meal, day: day,
                              onLogged: { receipt in selectedMeal = nil; show(receipt) },
                              onDeleted: { selectedMeal = nil })
         }
         .navigationDestination(item: $route) { route in
             switch route {
-            case .manualAdd: ManualAddView(meal: meal) { receipt in self.route = nil; show(receipt) }
+            case .manualAdd: ManualAddView(meal: meal, day: day) { receipt in self.route = nil; show(receipt) }
             case .addFood: AddFoodView { _ in self.route = nil }
             case .createMeal: CreateMealView { self.route = nil }
             }
@@ -222,7 +228,8 @@ struct LogFoodView: View {
         let text = search.trimmingCharacters(in: .whitespaces)
         return Button {
             guard TerraAccess.ready(account) else { signingIn = true; return }
-            FoodScanQueue.shared.startDescribe(text, meal: meal, client: TerraAccess.client(account), context: context)
+            FoodScanQueue.shared.startDescribe(text, meal: meal, day: day, client: TerraAccess.client(account),
+                                               context: context)
             dismiss()
         } label: {
             HStack(spacing: 12) {
@@ -312,7 +319,8 @@ struct LogFoodView: View {
                                                        serving: food.servingText),
                            id: food.persistentModelID, identifier: food.name,
                            open: { selectedFromSearch = false; selected = food },
-                           log: { try FoodLog.log(food, meal: meal, at: TodayDayPrototype.logDate(for: meal) /* PROTOTYPE (nutrition 16) */, source: tab == .all ? .recent : .saved, in: context) })
+                           log: { try FoodLog.log(food, meal: meal, loggedAt: loggedAt, source: tab == .all ? .recent : .saved,
+                                                           in: context) })
                 }
             }
             credits(shownFoods.map(\.databaseID))
@@ -422,7 +430,7 @@ struct LogFoodView: View {
             Button {
                 do {
                     let saved = try FoodDatabase.save(food, in: context)
-                    let receipt = try FoodLog.log(saved, meal: meal, at: TodayDayPrototype.logDate(for: meal) /* PROTOTYPE (nutrition 16) */, source: .search, in: context)
+                    let receipt = try FoodLog.log(saved, meal: meal, loggedAt: loggedAt, source: .search, in: context)
                     withAnimation(motion) {
                         logged.insert(saved.persistentModelID)
                         self.receipt = receipt
@@ -456,7 +464,7 @@ struct LogFoodView: View {
                            subtitle: "\(FoodCopy.calories(item.macros.calories)) · \(item.orderedItems.map(\.name).joined(separator: ", "))",
                            id: item.persistentModelID, identifier: "meal.\(item.name)",
                            open: { selectedMeal = item },
-                           log: { try FoodLog.log(item, meal: meal, at: TodayDayPrototype.logDate(for: meal) /* PROTOTYPE (nutrition 16) */, in: context) })
+                           log: { try FoodLog.log(item, meal: meal, loggedAt: loggedAt, in: context) })
                 }
             }
             credits(shownMeals.flatMap { $0.orderedItems.map { $0.savedFood?.databaseID } })

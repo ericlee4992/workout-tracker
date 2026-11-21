@@ -107,18 +107,28 @@ enum WeekSummaryMath {
     /// last). Performance P1: an input orders every entry and reads every set, and Today and the Workout tab
     /// re-run this on every store change — during a workout, each heart-rate sample. Over the whole history
     /// that cost ~0.6 s per pass on 150 workouts and froze the live workout behind them.
-    static func summary(ofWorkouts workouts: [Workout], now: Date, calendar: Calendar = .current) -> WeekSummary {
-        let from = windowStart(now: now, calendar: calendar)
-        let inputs = workouts.filter { $0.startedAt >= from }.compactMap(WeekSummaryInput.init(workout:))
-        return summary(of: inputs, now: now, calendar: calendar)
+    ///
+    /// `weekOf` (N16, D92): a date in an earlier week to show instead (nil: the week containing `now`); its days are
+    /// neither today nor ahead. Only that week and the one before are read.
+    static func summary(ofWorkouts workouts: [Workout], now: Date, weekOf: Date? = nil,
+                        calendar: Calendar = .current) -> WeekSummary {
+        let anchor = weekOf ?? now
+        let from = windowStart(now: anchor, calendar: calendar)
+        let end = calendar.dateInterval(of: .weekOfYear, for: anchor)?.end ?? .distantFuture
+        let inputs = workouts.filter { $0.startedAt >= from && $0.startedAt < end }
+            .compactMap(WeekSummaryInput.init(workout:))
+        return summary(of: inputs, now: now, weekOf: weekOf, calendar: calendar)
     }
 
     /// The week containing `now` in `calendar` (its locale's first weekday — the same weeks
     /// History's calendar draws). Workouts belong to the day they STARTED on, as everywhere in
     /// History (`WorkoutCalendar`). `lastWeekWorkoutCount` is the previous calendar week.
-    static func summary(of workouts: [WeekSummaryInput], now: Date, calendar: Calendar = .current) -> WeekSummary {
+    /// `weekOf` (N16): a date in another week to show (nil: `now`'s); today and the days ahead are still `now`'s.
+    static func summary(of workouts: [WeekSummaryInput], now: Date, weekOf: Date? = nil,
+                        calendar: Calendar = .current) -> WeekSummary {
         let today = calendar.startOfDay(for: now)
-        let start = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? today
+        let anchor = weekOf ?? now
+        let start = calendar.dateInterval(of: .weekOfYear, for: anchor)?.start ?? calendar.startOfDay(for: anchor)
         let letters = calendar.veryShortWeekdaySymbols
         var days: [WeekDaySummary] = []
         var counts: [MuscleFamily: Int] = [:]
@@ -141,7 +151,7 @@ enum WeekSummaryMath {
                 isFuture: day > today,
                 workouts: items.map(dayWorkout)))
         }
-        let lastWeekStart = windowStart(now: now, calendar: calendar)
+        let lastWeekStart = windowStart(now: anchor, calendar: calendar)
         let lastWeek = workouts.filter { $0.startedAt >= lastWeekStart && $0.startedAt < start }.count
         return WeekSummary(
             days: days,
