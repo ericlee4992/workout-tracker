@@ -14,7 +14,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 - **Done 2026-11-20 — [N16, pick a day on Today](../work-record/nutrition/issues/16-pick-a-day-on-today.md)** (D92;
   Codex clear round 2; merged; branch `ericlee4992/today-pick-day` kept; prototype tag `design/today-pick-day-prototype`).
   No stored-format change. `scripts/sim-ui.sh` taps did nothing that session (snapshots fine) — worth a look.
-- **Installed on the phone (the user, 2026-11-21): [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) uploaded 2026-11-18 01:17 EST** (`main` `8812bfda`; machine-settings 01 My settings, D91; no What's New; the user's What to Test note; no server change; Codex release review clear, Unit 1329/1329). **Stored-format change (`016aa14c…`): Gate S on the phone before installing.** **The user's steps:** processing → Developer → Gate S (with Claude) → install → try My settings → Friends with the What to Test note → Submit.
+- **Installed on the phone (the user, 2026-11-21, after its Gate S): [0.2.0 (17)](../work-record/release/0.2.0-build-17.md)** — uploaded 2026-11-18 01:17 EST (`main` `8812bfda`; machine-settings 01 My settings, D91; stored-format change `016aa14c…`, the format build 18 keeps).
 - **Done 2026-11-19 — [agent-skills 04, prompt audit fixes](../work-record/agent-skills/issues/04-prompt-audit-fixes.md)**
   (Codex clear; merged). Left for the user to decide: the 10 project skill copies that differ from the
   `mattpocock-skills` plugin's; the user-level `orchestration` skill's Orca reviewer rule vs this project's Paseo one.
