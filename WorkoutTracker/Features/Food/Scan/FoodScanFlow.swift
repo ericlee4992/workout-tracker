@@ -245,7 +245,10 @@ struct FoodScanFlow: View {
             // Log food chose or the time's.
             let when = FoodScan.when(photoTaken: shot.taken)
             let meal = shot.fromLibrary && shot.taken != nil ? when.meal : (meal ?? when.meal)
-            FoodScanQueue.shared.startPhoto(jpeg: shot.jpeg, meal: meal, eatenAt: when.date,
+            // PROTOTYPE (nutrition 16): on a picked day, that day at the meal's time (the picked day wins over a
+            // library photo's own date — the user, 2026-11-20).
+            FoodScanQueue.shared.startPhoto(jpeg: shot.jpeg, meal: meal,
+                                            eatenAt: TodayDayPrototype.logDate(for: meal, otherwise: when.date),
                                             client: TerraAccess.client(account), context: context)
             done()
         case .label:
@@ -1036,7 +1039,10 @@ private struct LabelFoodStep: View {
             // A picked photo's time decides its meal (D83); a camera label: Log food's meal or the time's.
             LabelFoodView(reading: reading, image: label.shot.image,
                           meal: label.shot.taken.map { FoodScan.when(photoTaken: $0).meal } ?? meal ?? MealSlot.forTime(.now),
-                          eatenAt: FoodScan.when(photoTaken: label.shot.taken).date,
+                          // PROTOTYPE (nutrition 16): on a picked day, that day at the meal's time.
+                          eatenAt: TodayDayPrototype.logDate(
+                              for: label.shot.taken.map { FoodScan.when(photoTaken: $0).meal } ?? meal ?? MealSlot.forTime(.now),
+                              otherwise: FoodScan.when(photoTaken: label.shot.taken).date),
                           onRetake: onRetake, onLogged: onLogged)
         }
     }

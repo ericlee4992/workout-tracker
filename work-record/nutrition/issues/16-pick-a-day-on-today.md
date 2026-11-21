@@ -1,10 +1,10 @@
 # N16 — Pick a day on Today: see it and log food to it
 
 Type: feature
-Status: **prototype, waiting for the user** (2026-11-20)
+Status: **prototype round 2 (the user's answers applied), waiting for the user's check** (2026-11-20)
 Implementer: Claude; Reviewer: Codex (a Paseo Codex agent in this workspace), to "clear".
 Branch: `ericlee4992/today-pick-day` off `main` `cb364043` (Paseo worktree `~/.paseo/worktrees/1qmeipq9/today-pick-day`).
-Decision: **D92** (proposed). Builds on D68 (Today), D70 (dated goals), D77 (Up next), N5 (Today's food), N10 (a day's
+Decision: **D92** (proposed; the user's answers of 2026-11-20 folded in, approval pending the round-2 check). Builds on D68 (Today), D70 (dated goals), D77 (Up next), N5 (Today's food), N10 (a day's
 food page, `DayFoodView`), D82/D83 (scans).
 
 ## The ask (the user, 2026-11-20)
@@ -120,15 +120,47 @@ instead.
 - At AccessibilityL the seven day rows fill the first screen, so a past day's content is below them.
 - The prototype back-dates the entry's `createdAt` and the food's "last used" along with `loggedAt` (see below).
 
-## Questions for the user
+## Questions for the user (round 1)
 
-1. **Tapping a day:** should Today become that day (A), or should it open the day's page (B)?
-2. **The way back:** a "Today" button by the title (A), or a strip under the week (B)?
-3. **How far back:** earlier weeks with ‹ › and swipe (recommended, because of Sunday's yesterday), or this week only?
-4. **Scan on a past day:** show the camera and Estimate there, and log to the picked day? And should a library photo
-   then take the picked day over its own date (D83(9))?
-5. Is the meal's usual time (8:00 / 12:30 / 3:30 PM / 6:30 PM) fine, or should Log food get a time row on a past day?
-6. Out of scope unless asked: moving an existing entry to another day (the edit sheet has no date).
+1. Tapping a day: Today becomes that day (A) or the day's page (B)? 2. The way back: Today button or strip? 3. This
+week or earlier weeks? 4. Scan on a past day, and a library photo → the picked day? 5. The meal-time rule? 6. (Out of
+scope) moving an entry to another day.
+
+## The user's answers (2026-11-20)
+
+"For the Log food and scan button, i just want them to stay the same across the days. 1. Today turns into that day
+2. Back to Today 3. Earlier weeks 4. Yes, go the picked day 5. Yes. Again, build the prototype so i can check"
+
+- **Log food and the camera look the same on every day** ("Log food", camera beside it), and log to the day shown.
+  (Log food's screen keeps its "Tuesday, Nov 17" line under the title, so it is clear where a food goes.)
+- 1 → **Today turns into the day** (A). 2 → **the "Back to Today" strip** under the week (no Today button by the title).
+  3 → **earlier weeks** (‹ › and swipe). 4 → **scans log to the picked day** — camera photo, label, Estimate, Manual
+  Add from a scan, the barcode's food, and a **library photo too (the picked day wins over its own date; amends
+  D83(9))**. 5 → **the meal's usual time** (8:00 / 12:30 / 3:30 PM / 6:30 PM).
+
+### 2026-11-20 — prototype round 2
+
+- The switcher now has Appearance only (the options are decided); the day-page option and the Today button are gone
+  (`DayFoodView`'s hook removed; `LogFoodPill` back to its original form).
+- Log food's camera and Estimate are shown on a past day again; the scan paths log to the picked day through two more
+  marked hooks: `FoodScanFlow` (a meal photo — camera or library — and a label) and `FoodScanQueue.startDescribe`.
+  A past day lists its own scans in flight (Today lists today's, as before).
+- **Run:** as above, adding `-uiTestTerra` so scans are answered on the phone (the fixture's drawn meal for the
+  shutter and the library): `-uiTestReset -uiTestDesignSample -uiTestFoodSample -uiTestFoodDiary
+  -uiTestPersonalDetails -uiTestTerra -todayPickDayPrototype`.
+- **Captures** (replacing round 1's): [`../captures/16-prototype/`](../captures/16-prototype/) — `0-today`,
+  `1-past-day`, `2-last-week` in light/dark × default/AXL; from the UI test (light, default):
+  `3-log-food-to-tuesday`, `4-logged-to-tuesday`, `5-scan-logged-to-tuesday`; a sheet per mode.
+
+**Verified:** `xcodebuild build` exit 0; `TodayDayPrototypeUITests` 3/3 (exit 0, `build/results/ntd-proto2.xcresult`,
+real taps): pick a past day (title, strip, camera kept, no Up next) → Log food shows the day and its camera → Banana
+logged to that day, today unchanged; on a past day with `-uiTestTerra` a camera photo **and** a library photo each log
+"Poke bowl" to that day and nothing to today; earlier weeks (next disabled on this week, ‹ → "Last week" with the same
+weekday picked, swipe further back, Back to Today). The 15 captures looked at.
+**Not verified:** a label scan and Estimate on a past day were not driven (same hook pattern, built); no unit tests
+(prototype). **Known:** a scan logged to a past day also leaves its "logged earlier" card on today's log (D83's
+existing behaviour for an earlier-day photo) — the real build should drop it when the user picked that day; a label's
+time follows the meal it opened with, not one changed on the label screen.
 
 ## Real build (after approval)
 
@@ -139,7 +171,8 @@ instead.
   food's / meal's `lastUsedAt` to the same date. The real build needs a separate logged-at parameter: `createdAt` and
   `lastUsedAt` stay now, or Recently logged runs backwards. This is a "stale value overwrites newer" defect class.
 - **Route every path:** Log food's three calls, SelectedFood (2), SelectedMeal, Manual Add (also from a scan's "Add
-  manually"), the online result, and, if Q4 says so, `FoodScanQueue` (photo, label, describe) and the barcode flow.
+  manually"), the online result, `FoodScanQueue` (photo — camera and library — label, describe) and the barcode flow;
+  the picked day overrides a library photo's own date (the user, amends D83(9)).
   Pass the day down explicitly instead of through a global, so Log food opened from History's page or Today can't
   read a stale day (here, each pill sets it on tap).
 - **Apple Health (D74):** check that `HealthNutritionSync` writes a back-dated entry's sample on its own day and

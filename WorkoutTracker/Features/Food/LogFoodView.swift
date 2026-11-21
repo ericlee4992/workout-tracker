@@ -116,8 +116,7 @@ struct LogFoodView: View {
                     mealChips
                     tabBar
                     searchField
-                    // PROTOTYPE (nutrition 16): Estimate logs at once at now — hidden while logging to a past day.
-                    if tab == .all && searching && !TodayDayPrototype.logsToPastDay { describeRow }
+                    if tab == .all && searching { describeRow }
                     content
                     if tab == .all && searching { onlineSection }
                     // At accessibility sizes the command scrolls with the list: pinned, it left room for one food row.
@@ -135,15 +134,14 @@ struct LogFoodView: View {
         .lookScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // PROTOTYPE (nutrition 16): the scan logs at now — hidden while logging to a past day.
-            if !TodayDayPrototype.logsToPastDay { ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItem(placement: .topBarTrailing) {
                 Button { showScan = true } label: {
                     Image(systemName: "camera.viewfinder").font(.system(.body, weight: .semibold))
                         .foregroundStyle(look.textPrimary)
                 }
                 .accessibilityLabel("Scan food")
                 .accessibilityIdentifier("logFoodScan")
-            } }
+            }
         }
         .sheet(isPresented: $signingIn) { AccountSignInSheet() }
         .fullScreenCover(isPresented: $showScan) {
@@ -568,8 +566,6 @@ struct LogFoodView: View {
 
 /// Today's "Log food" pill (D68; the approved prototype's `SoftLogFoodPill`): black, above the tab bar, Today only.
 struct LogFoodPill: View {
-    /// Nutrition 16 (proposed): "Log to Tuesday" on a picked past day.
-    var title = "Log food"
     var action: () -> Void
     /// N7: Scan food, a round camera button beside the pill (one tap from Today to the camera).
     var scan: (() -> Void)?
@@ -602,7 +598,7 @@ struct LogFoodPill: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: "plus").font(.system(.subheadline, weight: .bold))
-                Text(title).font(.system(.headline, weight: .semibold))
+                Text("Log food").font(.system(.headline, weight: .semibold))
             }
             .foregroundStyle(look.onAction)
             .padding(.horizontal, 22)

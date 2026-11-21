@@ -2,23 +2,20 @@ import SwiftData
 import SwiftUI
 
 // PROTOTYPE (nutrition 16, throwaway): picking a day on Today to see it and log food to it, on sample data, for the
-// user to try before anything is built for real (D92, proposed). Shown only under `-uiTestReset
-// -todayPickDayPrototype` with the food sample (`-uiTestDesignSample -uiTestFoodSample -uiTestFoodDiary
-// -uiTestPersonalDetails`). Logging really writes to the sample store (reset on every launch); no schema change.
-// Removed once the user has decided; the kept parts are `TodayWeekRings`' selection and chevrons, `LogFoodPill`'s
-// title, and Today's past-day layout (`TodayView`, behind `dayPick`).
+// user to check (D92). Round 2 (the user's answers, 2026-11-20): Today turns into the picked day; a "Back to Today"
+// strip under the week; earlier weeks (‹ › and a swipe); Log food and the scan camera look the same on every day and
+// log to the day shown — a scan too, a library photo included (the picked day wins over its own date). Shown only
+// under `-uiTestReset -todayPickDayPrototype` with the food sample (`-uiTestDesignSample -uiTestFoodSample
+// -uiTestFoodDiary -uiTestPersonalDetails`; add `-uiTestTerra` so scans are answered on the phone). Logging really
+// writes to the sample store (reset on every launch); no schema change. Removed once approved; the kept parts are
+// `TodayWeekRings`' selection and chevrons and Today's past-day layout (`TodayView`, behind `dayPick`).
 //
 // Hooks, each marked `PROTOTYPE (nutrition 16)` and a no-op without the flag: `TodayView` (the picked day, the
-// switcher), `DayFoodView` (its Log pill), `LogFoodView` / `SelectedFoodView` / `SelectedMealView` (log at the
-// picked day; scan and Estimate hidden there), `WorkoutTrackerApp.prepare` (the seed).
-//
-// The orange switcher offers what the user is to settle: what tapping a day does (Today shows it, or it opens the
-// day's food page), the way back (a Today button by the title, or a strip under the week), how far back (this week
-// only, or earlier weeks with chevrons and a swipe), and light/dark.
+// switcher), `LogFoodView` / `SelectedFoodView` / `SelectedMealView` / `FoodScanFlow` / `FoodScanQueue` (log at the
+// picked day), `WorkoutTrackerApp.prepare` (the seed).
 //
 // Capture arguments: `-todayPickDayPrototypeDay <days back>` picks that day at launch;
-// `-todayPickDayPrototypePage <days back>` opens that day's page; `-todayPickDayPrototypeOpens page`, `-todayPickDayPrototypeBack strip`, `-todayPickDayPrototypeRange earlier` set
-// the options; `-todayPickDayPrototypeCapture` hides the switcher.
+// `-todayPickDayPrototypeCapture` hides the switcher (light/dark only).
 
 @Observable
 @MainActor
@@ -30,56 +27,18 @@ final class TodayDayPrototype {
         ProcessInfo.processInfo.arguments.contains("-todayPickDayPrototypeCapture")
     }
 
-    enum Opens: String, CaseIterable, Identifiable {
-        case inPlace, page
-        var id: Self { self }
-        var label: String { self == .inPlace ? "Today shows the day" : "Opens the day's page" }
-    }
-
-    enum Back: String, CaseIterable, Identifiable {
-        case button, strip
-        var id: Self { self }
-        var label: String { self == .button ? "Today button by the title" : "Strip under the week" }
-    }
-
-    enum Range: String, CaseIterable, Identifiable {
-        case thisWeek, earlier
-        var id: Self { self }
-        var label: String { self == .thisWeek ? "This week only" : "Earlier weeks (‹ › and swipe)" }
-    }
-
-    var opens = Opens.inPlace
-    var back = Back.button
-    var range = Range.thisWeek
     /// The day Today shows (its start); nil = today, which follows the clock across midnight.
     var selectedDay: Date?
     /// 0 = this week, -1 = last week, …
     var weekOffset = 0
-    /// "Opens the day's page": the page open (Today's `navigationDestination(item:)`).
-    var pageDay: PageDay?
-
-    struct PageDay: Hashable, Identifiable {
-        var day: Date
-        var id: Date { day }
-    }
     /// The day Log food logs to, set by the pill that opened it; nil = now.
     var logDay: Date?
-    /// `-todayPickDayPrototypePage <days back>`: the page to open once Today is on screen.
-    var pendingPageDay: Date?
 
     private init() {
         let arguments = ProcessInfo.processInfo.arguments
         func argument(_ flag: String) -> String? {
             guard let index = arguments.firstIndex(of: flag), index + 1 < arguments.count else { return nil }
             return arguments[index + 1]
-        }
-        if argument("-todayPickDayPrototypeOpens") == "page" { opens = .page }
-        if argument("-todayPickDayPrototypeBack") == "strip" { back = .strip }
-        if argument("-todayPickDayPrototypeRange") == "earlier" { range = .earlier }
-        if let back = argument("-todayPickDayPrototypePage").flatMap(Int.init), back > 0 {
-            opens = .page
-            pendingPageDay = Calendar.current.date(byAdding: .day, value: -back,
-                                                   to: Calendar.current.startOfDay(for: .now))
         }
         if let back = argument("-todayPickDayPrototypeDay").flatMap(Int.init), back > 0,
            let day = Calendar.current.date(byAdding: .day, value: -back, to: Calendar.current.startOfDay(for: .now)) {
@@ -90,25 +49,18 @@ final class TodayDayPrototype {
 
     // MARK: Picking
 
-    /// A day's ring: Today shows it (today itself → nil), or — "Opens the day's page" — its page opens.
+    /// A day's ring: Today shows it (today itself → nil).
     func pick(_ day: Date, now: Date) {
         let calendar = Calendar.current
-        let isToday = calendar.isDate(day, inSameDayAs: now)
-        if opens == .page {
-            if !isToday { pageDay = PageDay(day: calendar.startOfDay(for: day)) }
-            return
-        }
-        selectedDay = isToday ? nil : calendar.startOfDay(for: day)
+        selectedDay = calendar.isDate(day, inSameDayAs: now) ? nil : calendar.startOfDay(for: day)
     }
 
-    /// The chevrons and the swipe: the week moves; in place, the same weekday of that week is picked (never past
-    /// today).
+    /// The chevrons and the swipe: the week moves and the same weekday of that week is picked (never past today).
     func moveWeek(by step: Int, now: Date) {
         let calendar = Calendar.current
         let target = min(0, weekOffset + step)
         guard target != weekOffset else { return }
         weekOffset = target
-        guard opens == .inPlace else { return }
         let anchor = selectedDay ?? calendar.startOfDay(for: now)
         guard let day = calendar.date(byAdding: .weekOfYear, value: step, to: anchor) else { return }
         selectedDay = day >= calendar.startOfDay(for: now) ? nil : day
@@ -117,16 +69,6 @@ final class TodayDayPrototype {
     func backToToday() {
         selectedDay = nil
         weekOffset = 0
-    }
-
-    func setRange(_ range: Range) {
-        self.range = range
-        if range == .thisWeek { backToToday() }
-    }
-
-    func setOpens(_ opens: Opens) {
-        self.opens = opens
-        backToToday()
     }
 
     static func weekOffset(of day: Date, now: Date, calendar: Calendar = .current) -> Int {
@@ -172,7 +114,12 @@ final class TodayDayPrototype {
     /// entries and is the time Apple Health gets. The prototype back-dates the entry's `createdAt` and the food's
     /// "last used" too (`FoodLog.log(at:)` sets all three); the real build keeps those at now.
     static func logDate(for meal: MealSlot, now: Date = .now) -> Date {
-        guard isEnabled, let day = shared.logDay else { return now }
+        logDate(for: meal, otherwise: now)
+    }
+
+    /// The scans: the picked day at the meal's time, or `otherwise` (now, or a library photo's own time — D83(9)).
+    static func logDate(for meal: MealSlot, otherwise: Date) -> Date {
+        guard isEnabled, let day = shared.logDay else { return otherwise }
         return mealTime(meal, on: day)
     }
 
@@ -186,15 +133,13 @@ final class TodayDayPrototype {
         return calendar.startOfDay(for: day).addingTimeInterval(Double(minutes * 60))
     }
 
-    static var logsToPastDay: Bool { isEnabled && shared.logDay != nil }
-
     /// Log food's subtitle: "Tuesday, Nov 18" while logging to a past day.
     static var logDaySubtitle: String? {
         guard isEnabled, let day = shared.logDay else { return nil }
         return day.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())
     }
 
-    /// The pill's target: a past day, or nil for today (logged at now).
+    /// Log food's and the camera's target, set when either is tapped on Today: a past day, or nil for today (now).
     static func setLogDay(_ day: Date?, now: Date = .now) {
         guard isEnabled else { return }
         shared.logDay = day.flatMap { Calendar.current.isDate($0, inSameDayAs: now) ? nil : Calendar.current.startOfDay(for: $0) }
@@ -236,7 +181,7 @@ final class TodayDayPrototype {
     }
 }
 
-// MARK: - The strip (the "Strip under the week" option)
+// MARK: - The strip
 
 /// "Showing Tuesday, Nov 18" with Back to Today, under the week while a past day is shown.
 struct TodayDayPrototypeStrip: View {
@@ -272,29 +217,7 @@ struct TodayDayPrototypeStrip: View {
     }
 }
 
-/// The "Today button by the title" option: a small capsule beside a past day's title.
-struct TodayDayPrototypeTodayButton: View {
-    var action: () -> Void
-    @Environment(\.look) private var look
-
-    var body: some View {
-        Button(action: action) {
-            Text("Today")
-                .font(look.font.subhead.weight(.semibold))
-                .foregroundStyle(look.onAction)
-                .padding(.horizontal, 16)
-                .frame(minHeight: 36)
-                .background(look.action, in: Capsule())
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.lookPressable)
-        .accessibilityLabel("Back to Today")
-        .accessibilityIdentifier("todayBackToToday")
-    }
-}
-
-// MARK: - The switcher and the day page (over Today)
+// MARK: - The switcher (over Today)
 
 private struct TodayDayPrototypeSwitcher: ViewModifier {
     @State private var state = TodayDayPrototype.shared
@@ -303,12 +226,6 @@ private struct TodayDayPrototypeSwitcher: ViewModifier {
         content
             .safeAreaInset(edge: .top, spacing: 0) {
                 if !TodayDayPrototype.hidesSwitcher { TodayDayPrototypeMenu() }
-            }
-            .task {
-                guard let day = state.pendingPageDay else { return }
-                try? await Task.sleep(for: .milliseconds(1200))
-                state.pendingPageDay = nil
-                state.pageDay = TodayDayPrototype.PageDay(day: day)
             }
     }
 }
@@ -319,25 +236,12 @@ private struct TodayDayPrototypeMenu: View {
 
     var body: some View {
         Menu {
-            Picker("Tapping a day", selection: Binding(get: { state.opens }, set: { state.setOpens($0) })) {
-                ForEach(TodayDayPrototype.Opens.allCases) { Text($0.label).tag($0) }
-            }
-            .pickerStyle(.menu)
-            Picker("The way back", selection: Binding(get: { state.back }, set: { state.back = $0 })) {
-                ForEach(TodayDayPrototype.Back.allCases) { Text($0.label).tag($0) }
-            }
-            .pickerStyle(.menu)
-            Picker("How far back", selection: Binding(get: { state.range }, set: { state.setRange($0) })) {
-                ForEach(TodayDayPrototype.Range.allCases) { Text($0.label).tag($0) }
-            }
-            .pickerStyle(.menu)
             Picker("Appearance", selection: $appearanceRaw) {
                 ForEach(Appearance.allCases) { Text($0.label).tag($0.rawValue) }
             }
             .pickerStyle(.menu)
         } label: {
-            Text("Prototype · \(state.opens == .inPlace ? "In place" : "Day page") · "
-                 + "\(state.range == .thisWeek ? "This week" : "Earlier weeks")")
+            Text("Prototype · Pick a day")
                 .font(.caption.weight(.bold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 12)
@@ -350,39 +254,9 @@ private struct TodayDayPrototypeMenu: View {
     }
 }
 
-/// The day page's Log pill (the "Opens the day's page" option; on History's day page too while the prototype runs).
-private struct TodayDayPrototypePagePill: ViewModifier {
-    var day: Date
-    @State private var showLogFood = false
-
-    func body(content: Content) -> some View {
-        content
-            .safeAreaInset(edge: .bottom) {
-                LogFoodPill(title: TodayDayPrototype.pillTitle(for: day), action: {
-                    TodayDayPrototype.setLogDay(day)
-                    showLogFood = true
-                }, scan: nil)
-            }
-            .navigationDestination(isPresented: $showLogFood) { LogFoodView() }
-    }
-}
-
-extension TodayDayPrototype {
-    /// "Log food" today, "Log to Tuesday" on a past day.
-    static func pillTitle(for day: Date, now: Date = .now) -> String {
-        Calendar.current.isDate(day, inSameDayAs: now)
-            ? "Log food" : "Log to \(day.formatted(.dateTime.weekday(.wide)))"
-    }
-}
-
 extension View {
     /// On Today.
     @ViewBuilder func todayDayPrototypeSwitcher() -> some View {
         if TodayDayPrototype.isEnabled { modifier(TodayDayPrototypeSwitcher()) } else { self }
-    }
-
-    /// On a day's food page.
-    @ViewBuilder func todayDayPrototypePagePill(day: Date) -> some View {
-        if TodayDayPrototype.isEnabled { modifier(TodayDayPrototypePagePill(day: day)) } else { self }
     }
 }

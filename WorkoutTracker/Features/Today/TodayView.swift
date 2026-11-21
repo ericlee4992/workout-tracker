@@ -83,8 +83,8 @@ struct TodayView: View {
                     title
                     let summary = weekSummary
                     weekRings(summary)
-                    if showsPastDay, dayPick?.back == .strip {
-                        TodayDayPrototypeStrip(day: shownDay) { dayPick?.backToToday() }
+                    if showsPastDay, let dayPick {
+                        TodayDayPrototypeStrip(day: shownDay) { dayPick.backToToday() }
                     }
                     TodayFuelCard(day: todayFood, isToday: !showsPastDay) { showGoals = true }
                     // A past day: no Up next (it is today's); a running workout's Resume stays on every day.
@@ -102,16 +102,15 @@ struct TodayView: View {
                 withAnimation(.easeInOut(duration: 0.18)) { titleInBar = past }
             }
             // N4 (D68; built early by the user's choice, 2026-11-10): Log food above the tab bar, Today only.
-            // Nutrition 16: on a past day the pill logs to that day ("Log to Tuesday"); the scan is hidden there in the
-            // prototype (it logs at now).
+            // Nutrition 16 (the user, 2026-11-20): Log food and the camera look the same on every day and log to the
+            // day shown (PROTOTYPE: through `TodayDayPrototype.logDay`, set on each tap).
             .safeAreaInset(edge: .bottom) {
-                LogFoodPill(title: showsPastDay ? TodayDayPrototype.pillTitle(for: shownDay, now: now) : "Log food",
-                            action: {
+                LogFoodPill(action: {
                                 TodayDayPrototype.setLogDay(showsPastDay ? shownDay : nil, now: now)
                                 showLogFood = true
                             },
-                            scan: showsPastDay ? nil : {
-                                TodayDayPrototype.setLogDay(nil)
+                            scan: {
+                                TodayDayPrototype.setLogDay(showsPastDay ? shownDay : nil, now: now)
                                 showScan = true
                             })
             }
@@ -137,10 +136,7 @@ struct TodayView: View {
                 }
             }
             .navigationDestination(isPresented: $showGoals) { NutritionGoalsView() }
-            // PROTOTYPE (nutrition 16): "Opens the day's page".
-            .navigationDestination(item: Binding(get: { dayPick?.pageDay }, set: { dayPick?.pageDay = $0 })) { page in
-                DayFoodView(day: page.day)
-            }
+
             .sheet(item: $editingEntry) { entry in
                 EditEntrySheet(entry: entry) { copy in
                     withAnimation(reduceMotion ? nil : .snappy) { deletedEntry = copy }
@@ -183,13 +179,11 @@ struct TodayView: View {
     private var showsPastDay: Bool { !Calendar.current.isDate(shownDay, inSameDayAs: now) }
     private var shownWeekday: String { shownDay.formatted(.dateTime.weekday(.wide)) }
 
-    /// "Today" with today's date; a past day: "Tuesday" over "November 18", with the Today button (one option).
+    /// "Today" with today's date; a past day: "Tuesday" over "November 18, 2026" (the way back is the strip under the
+    /// week, and today's ring).
     @ViewBuilder private var title: some View {
         if showsPastDay {
-            HStack(alignment: .center, spacing: 12) {
-                LookNavTitle(shownWeekday, subtitle: shownDay.formatted(.dateTime.month(.wide).day().year()))
-                if dayPick?.back == .button { TodayDayPrototypeTodayButton { dayPick?.backToToday() } }
-            }
+            LookNavTitle(shownWeekday, subtitle: shownDay.formatted(.dateTime.month(.wide).day().year()))
         } else {
             LookNavTitle("Today", subtitle: WorkoutDates.homeSubtitle(now))
         }
@@ -197,15 +191,14 @@ struct TodayView: View {
 
     @ViewBuilder private func weekRings(_ summary: WeekSummary) -> some View {
         if let dayPick {
-            let earlier = dayPick.range == .earlier
             TodayWeekRings(summary: summary, food: weekFood(summary),
                            title: TodayDayPrototype.weekTitle(offset: dayPick.weekOffset, now: now),
                            selected: shownDay,
                            onSelect: { dayPick.pick($0, now: now) },
-                           onPreviousWeek: earlier ? { dayPick.moveWeek(by: -1, now: now) } : nil,
-                           onNextWeek: earlier && dayPick.weekOffset < 0 ? { dayPick.moveWeek(by: 1, now: now) } : nil)
+                           onPreviousWeek: { dayPick.moveWeek(by: -1, now: now) },
+                           onNextWeek: dayPick.weekOffset < 0 ? { dayPick.moveWeek(by: 1, now: now) } : nil)
                 .simultaneousGesture(DragGesture(minimumDistance: 24).onEnded { drag in
-                    guard earlier, abs(drag.translation.width) > max(60, abs(drag.translation.height) * 1.5) else { return }
+                    guard abs(drag.translation.width) > max(60, abs(drag.translation.height) * 1.5) else { return }
                     withAnimation(reduceMotion ? nil : .snappy) {
                         dayPick.moveWeek(by: drag.translation.width > 0 ? -1 : 1, now: now)
                     }
@@ -334,8 +327,11 @@ struct TodayView: View {
             .sorted { ($0.loggedAt, $0.createdAt, $0.id.uuidString) < ($1.loggedAt, $1.createdAt, $1.id.uuidString) }
         return VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader(past ? "\(shownWeekday)'s log" : "Today's log")
-            // N7 (D82): a scan in flight or failed, first — on today only (nutrition 16).
-            ForEach(past ? [] : visibleScans) { scan in
+            // N7 (D82): a scan in flight or failed, first. Nutrition 16: a past day shows its own scans until logged.
+            let scansShown = past
+                ? scans.pending.filter { $0.loggedEarlierID == nil && Calendar.current.isDate($0.eatenAt, inSameDayAs: day) }
+                : visibleScans
+            ForEach(scansShown) { scan in
                 ScanPendingCard(scan: scan,
                                 loggedEarlier: scan.loggedEarlierID.flatMap { id in foodEntries.first { $0.id == id } },
                                 retake: { scans.dismiss(scan.id); showScan = true },
@@ -346,7 +342,7 @@ struct TodayView: View {
                     .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.97)))
             }
             if today.isEmpty && entries.isEmpty {
-                if past || visibleScans.isEmpty {
+                if scansShown.isEmpty {
                     Text(past ? "Nothing logged on \(shownWeekday)." : "Nothing logged yet today.")
                         .font(look.font.subhead)
                         .foregroundStyle(look.textSecondary)

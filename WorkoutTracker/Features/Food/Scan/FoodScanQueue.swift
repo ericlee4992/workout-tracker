@@ -57,7 +57,9 @@ final class FoodScanQueue {
 
     /// Describe what you ate: logged at once like a photo (D83), its card on Today meanwhile.
     func startDescribe(_ text: String, meal: MealSlot, client: AIServerClient?, context: ModelContext) {
-        start(Pending(jpeg: nil, preview: nil, text: text, meal: meal, eatenAt: .now, startedAt: .now),
+        start(Pending(jpeg: nil, preview: nil, text: text, meal: meal,
+                      eatenAt: TodayDayPrototype.logDate(for: meal), // PROTOTYPE (nutrition 16): the picked day
+                      startedAt: .now),
               client: client, context: context)
     }
 

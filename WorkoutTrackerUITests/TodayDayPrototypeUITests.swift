@@ -1,8 +1,8 @@
 import XCTest
 
 /// PROTOTYPE (nutrition 16, throwaway; removed with `TodayDayPrototype.swift`): taps through the pick-a-day prototype
-/// so its flows are checked by real taps — pick a past day, log a food to it, back to today; earlier weeks; the day
-/// page option.
+/// (round 2) so its flows are checked by real taps — pick a past day, log a food to it, scan to it, back to today;
+/// earlier weeks.
 final class TodayDayPrototypeUITests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -44,6 +44,16 @@ final class TodayDayPrototypeUITests: XCTestCase {
         app.buttons.matching(identifier: "todayEntry.\(name)").count
     }
 
+    /// Scrolls until the element is on screen.
+    private func reveal(_ element: XCUIElement, maxSwipes: Int = 8) {
+        var swipes = 0
+        while !(element.exists && element.isHittable) && swipes < maxSwipes {
+            app.swipeUp()
+            swipes += 1
+        }
+        XCTAssertTrue(element.exists, "not found: \(element)")
+    }
+
     func testPickAPastDayAndLogToIt() throws {
         launch()
         let day = try pastDayThisWeek()
@@ -51,9 +61,8 @@ final class TodayDayPrototypeUITests: XCTestCase {
         let todaysBananas = entries("Banana")
         app.buttons[Self.id(day)].tap()
         XCTAssertTrue(app.staticTexts[weekday].waitForExistence(timeout: 5), "the title is the picked day")
-        XCTAssertTrue(app.buttons["todayBackToToday"].exists)
-        XCTAssertEqual(app.buttons["logFoodPill"].label, "Log to \(weekday)")
-        XCTAssertFalse(app.buttons["scanFoodButton"].exists, "no scan on a past day (prototype)")
+        XCTAssertTrue(app.buttons["todayBackToToday"].exists, "the strip")
+        XCTAssertTrue(app.buttons["scanFoodButton"].exists, "the camera stays")
         XCTAssertFalse(app.buttons["todayStartUpNext"].exists, "no Up next on a past day")
         XCTAssertEqual(entries("Banana"), 0)
         shoot("1-past-day")
@@ -61,7 +70,7 @@ final class TodayDayPrototypeUITests: XCTestCase {
         app.buttons["logFoodPill"].tap()
         XCTAssertTrue(app.staticTexts[day.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())]
             .waitForExistence(timeout: 5), "Log food says which day")
-        XCTAssertFalse(app.buttons["logFoodScan"].exists)
+        XCTAssertTrue(app.buttons["logFoodScan"].exists, "Log food's camera stays")
         shoot("2-log-food")
         app.buttons["logFoodAdd.Banana"].firstMatch.tap()
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -71,30 +80,46 @@ final class TodayDayPrototypeUITests: XCTestCase {
         app.buttons["todayBackToToday"].tap()
         XCTAssertTrue(app.staticTexts["Today"].waitForExistence(timeout: 5))
         XCTAssertEqual(entries("Banana"), todaysBananas, "today unchanged")
-        XCTAssertEqual(app.buttons["logFoodPill"].label, "Log food")
-        XCTAssertTrue(app.buttons["scanFoodButton"].exists)
+    }
+
+    /// A camera photo and a library photo on a past day both land on that day (the user, 2026-11-20).
+    func testScansLogToThePickedDay() throws {
+        launch(["-uiTestTerra"])
+        let day = try pastDayThisWeek()
+        app.buttons[Self.id(day)].tap()
+        XCTAssertTrue(app.buttons["todayBackToToday"].waitForExistence(timeout: 5))
+        app.buttons["scanFoodButton"].tap()
+        XCTAssertTrue(app.buttons["scanFoodShutter"].waitForExistence(timeout: 5))
+        app.buttons["scanFoodShutter"].tap()
+        let entry = app.buttons["todayEntry.Poke bowl"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 15), "a camera photo is logged to the picked day")
+        reveal(entry)
+        shoot("4-scan-logged")
+
+        app.buttons["scanFoodButton"].tap()
+        XCTAssertTrue(app.buttons["scanFoodLibrary"].waitForExistence(timeout: 5))
+        app.buttons["scanFoodLibrary"].tap()
+        let deadline = Date.now.addingTimeInterval(15)
+        while entries("Poke bowl") < 2 && Date.now < deadline { Thread.sleep(forTimeInterval: 0.5) }
+        XCTAssertEqual(entries("Poke bowl"), 2, "a library photo goes to the picked day too")
+
+        app.swipeDown(); app.swipeDown(); app.swipeDown()
+        app.buttons["todayBackToToday"].tap()
+        XCTAssertTrue(app.staticTexts["Today"].waitForExistence(timeout: 5))
+        XCTAssertEqual(entries("Poke bowl"), 0, "nothing on today")
     }
 
     func testEarlierWeeks() {
-        launch(["-todayPickDayPrototypeRange", "earlier"])
+        launch()
         XCTAssertFalse(app.buttons["todayWeekNext"].isEnabled, "no week ahead")
         app.buttons["todayWeekPrevious"].tap()
         XCTAssertTrue(app.staticTexts["Last week"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["todayBackToToday"].exists, "the same weekday of last week is picked")
-        shoot("4-last-week")
+        shoot("5-last-week")
         app.otherElements["todayWeek"].firstMatch.swipeRight()
         XCTAssertFalse(app.staticTexts["Last week"].waitForExistence(timeout: 2), "swiped further back")
-        shoot("5-two-weeks-back")
+        shoot("6-two-weeks-back")
         app.buttons["todayBackToToday"].tap()
         XCTAssertTrue(app.staticTexts["This week"].waitForExistence(timeout: 5))
-    }
-
-    func testDayPageOption() throws {
-        launch(["-todayPickDayPrototypeOpens", "page"])
-        let day = try pastDayThisWeek()
-        app.buttons[Self.id(day)].tap()
-        XCTAssertTrue(app.buttons["logFoodPill"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.buttons["logFoodPill"].label, "Log to \(day.formatted(.dateTime.weekday(.wide)))")
-        shoot("6-day-page")
     }
 }
