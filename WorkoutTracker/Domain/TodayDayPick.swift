@@ -105,6 +105,13 @@ enum FoodLogDay {
         return mealTime(meal, on: start, calendar: calendar)
     }
 
+    /// A label's two times (codex-review-n16 #2): created — the entry, the food saved to My foods and its "last used" —
+    /// now; eaten — the picked day at the meal's time, else the photo's own time (D83(9); now for a camera label).
+    static func labelTimes(photoEatenAt: Date, meal: MealSlot, day: Date?, now: Date = .now,
+                           calendar: Calendar = .current) -> (created: Date, eaten: Date) {
+        (now, loggedAt(meal: meal, on: day, now: now, calendar: calendar) ?? photoEatenAt)
+    }
+
     /// Log food's line under its title for a picked day: "Tuesday, Nov 17".
     static func title(_ day: Date) -> String {
         day.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())

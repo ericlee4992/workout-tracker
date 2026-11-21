@@ -201,6 +201,29 @@ struct TodayDayPickTests {
         #expect(granola.lastUsedAt == now && granola.createdAt == now)
     }
 
+    /// codex-review-n16 #2: a library label photo taken weeks ago, logged on a picked day, with Save to My foods on and
+    /// off — eaten on the picked day, created and "last used" now; without a pick, eaten at the photo's own time.
+    @Test(arguments: [true, false])
+    func anOldLabelPhotoOnAPickedDayIsCreatedNow(saveToMyFoods: Bool) throws {
+        let context = try context()
+        let photo = day(1, hour: 13)
+        let picked = FoodLogDay.labelTimes(photoEatenAt: photo, meal: .lunch, day: day(17), now: now, calendar: calendar)
+        #expect(picked.created == now && picked.eaten == day(17, hour: 12, minute: 30))
+        let unpicked = FoodLogDay.labelTimes(photoEatenAt: photo, meal: .lunch, day: nil, now: now, calendar: calendar)
+        #expect(unpicked.created == now && unpicked.eaten == photo)
+
+        let draft = FoodDraft(name: "Granola", serving: ServingText(value: 1, unit: "cup"),
+                              nutrition: FoodNutrition(calories: 400))
+        try FoodScan.logLabel(draft, servings: 1, meal: .lunch, saveToMyFoods: saveToMyFoods, at: picked.created,
+                              loggedAt: picked.eaten, in: context)
+        let entry = try #require(try context.fetch(FetchDescriptor<FoodEntry>()).first)
+        #expect(entry.loggedAt == day(17, hour: 12, minute: 30) && entry.createdAt == now)
+        if saveToMyFoods {
+            let granola = try #require(try context.fetch(FetchDescriptor<SavedFood>()).first)
+            #expect(granola.createdAt == now && granola.lastUsedAt == now, "Recently logged keeps it at the top")
+        }
+    }
+
     @Test func withoutAPickedDayLoggingIsUnchanged() throws {
         let context = try context()
         let banana = food(context)

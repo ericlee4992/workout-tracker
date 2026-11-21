@@ -340,9 +340,11 @@ struct TodayView: View {
             ForEach(scansShown) { scan in
                 ScanPendingCard(scan: scan,
                                 loggedEarlier: scan.loggedEarlierID.flatMap { id in foodEntries.first { $0.id == id } },
-                                retake: { scans.dismiss(scan.id); showScan = true },
+                                // A failed card's Retake and Manual Add go to the scan's own day, not the last pill
+                                // tap's (codex-review-n16 #1); Try again keeps it in the queue.
+                                retake: { logDay = scan.pickedDay; scans.dismiss(scan.id); showScan = true },
                                 retry: { scans.retry(scan.id, client: TerraAccess.client(account), context: modelContext) },
-                                manualAdd: { scans.dismiss(scan.id); manualFromScan = true },
+                                manualAdd: { logDay = scan.pickedDay; scans.dismiss(scan.id); manualFromScan = true },
                                 signIn: { signInFor = scan.id; showSignIn = true },
                                 open: { openScan = $0 })
                     .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.97)))

@@ -6,13 +6,13 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 ## RESUME HERE (2026-11-20)
 
 - **NOW (resume here) — [N16, pick a day on Today](../work-record/nutrition/issues/16-pick-a-day-on-today.md): built,
-  in Codex review round 1** (ask 2026-11-20; the user approved the prototype minus the Back to Today strip — today's
+  in Codex review round 2** (round 1: 2 × P2, fixed; ask 2026-11-20; the user approved the prototype minus the Back to Today strip — today's
   ring goes back; D92 approved). Branch `ericlee4992/today-pick-day` off `main` `cb364043` (reviewed tip `8ea159df`),
   Paseo worktree `~/.paseo/worktrees/1qmeipq9/today-pick-day`; not merged. Prototype at tag
   `design/today-pick-day-prototype`. **No stored-format change** (no migration, no Gate S). **Verified:** Unit plan
   1344/1344 (`build/results/n16-unitplan.xcresult`), TodayTrain plan 86/86 (`build/results/n16-todaytrain.xcresult`).
-  **Codex:** agent `7b92d3ab-d32a-42b6-b01f-fb648a6e8100` (this workspace), brief
-  `work-record/nutrition/codex-review-n16-prompt.md` → report `codex-review-n16.md`. **Next:** the verdict → fixes →
+  **Codex:** agent `7b92d3ab-d32a-42b6-b01f-fb648a6e8100` (this workspace), briefs
+  `work-record/nutrition/codex-review-n16{,b}-prompt.md` → reports `codex-review-n16{,b}.md`. **Next:** round 2's verdict →
   merge `--ff-only` into `main`. `scripts/sim-ui.sh` taps did nothing this session (snapshots fine) — in the ticket.
 - **Pending — [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) uploaded 2026-11-18 01:17 EST** (`main` `8812bfda`; machine-settings 01 My settings, D91; no What's New; the user's What to Test note; no server change; Codex release review clear, Unit 1329/1329). **Stored-format change (`016aa14c…`): Gate S on the phone before installing.** **The user's steps:** processing → Developer → Gate S (with Claude) → install → try My settings → Friends with the What to Test note → Submit.
 - **Done 2026-11-19 — [agent-skills 04, prompt audit fixes](../work-record/agent-skills/issues/04-prompt-audit-fixes.md)**

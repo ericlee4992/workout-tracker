@@ -1054,7 +1054,8 @@ struct LabelFoodView: View {
     var image: UIImage?
     var meal: MealSlot
     var eatenAt: Date
-    /// N16: the picked earlier day — the entry is logged to it at the meal's time (`createdAt` stays `eatenAt`).
+    /// N16: the picked earlier day — the entry is logged to it at the meal's time; created and "last used" now
+    /// (`FoodLogDay.labelTimes`).
     var day: Date? = nil
     var onRetake: () -> Void
     var onLogged: () -> Void
@@ -1121,8 +1122,9 @@ struct LabelFoodView: View {
     private func log() {
         let draft = reading.draft(name: name, brand: brand)
         do {
-            try FoodScan.logLabel(draft, servings: servings, meal: meal, saveToMyFoods: saveToMyFoods, at: eatenAt,
-                                  loggedAt: FoodLogDay.loggedAt(meal: meal, on: day), in: context)
+            let times = FoodLogDay.labelTimes(photoEatenAt: eatenAt, meal: meal, day: day)
+            try FoodScan.logLabel(draft, servings: servings, meal: meal, saveToMyFoods: saveToMyFoods, at: times.created,
+                                  loggedAt: times.eaten, in: context)
             onLogged()
         } catch {
             failure = error.localizedDescription

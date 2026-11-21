@@ -125,6 +125,45 @@ final class TodayPickDayUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["scanLoggedEarlierTitle"].exists, "no leftover card on today")
     }
 
+    /// codex-review-n16 #1: a failed scan from a picked day, then a Log food visit from today (which resets the
+    /// visit's day), then Manual Add on the failed card: the entry goes to the scan's day, not today.
+    func testAFailedScansManualAddGoesToItsDay() throws {
+        launch(["-uiTestTerra", "-uiTestFoodScanFail", "nothing"])
+        let day = try pastDayThisWeek()
+        app.buttons[Self.id(day)].tap()
+        app.buttons["scanFoodButton"].tap()
+        XCTAssertTrue(app.buttons["scanFoodShutter"].waitForExistence(timeout: 5))
+        app.buttons["scanFoodShutter"].tap()
+        XCTAssertTrue(app.staticTexts["scanFailedTitle"].waitForExistence(timeout: 10))
+
+        // An intervening visit from today: Log food opened and closed.
+        app.buttons[Self.id(today)].tap()
+        XCTAssertTrue(app.staticTexts["Today"].waitForExistence(timeout: 5))
+        app.buttons["logFoodPill"].tap()
+        XCTAssertTrue(app.buttons["logFoodScan"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let todaysCookies = entries("Cookie")
+
+        app.buttons[Self.id(day)].tap()
+        let manual = app.buttons["scanManualAdd"]
+        reveal(manual)
+        manual.tap()
+        let name = app.textFields["manualAddName"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("Cookie")
+        let calories = app.textFields["manualAddCalories"]
+        calories.tap()
+        calories.typeText("200")
+        app.buttons["manualAddLog"].tap()
+        XCTAssertTrue(app.buttons["todayEntry.Cookie"].waitForExistence(timeout: 5), "logged to the scan's day")
+
+        backToTop()
+        app.buttons[Self.id(today)].tap()
+        XCTAssertTrue(app.staticTexts["Today"].waitForExistence(timeout: 5))
+        XCTAssertEqual(entries("Cookie"), todaysCookies, "nothing on today")
+    }
+
     func testEarlierWeeks() {
         launch()
         XCTAssertFalse(app.buttons["todayWeekNext"].isEnabled, "no week ahead")

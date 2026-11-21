@@ -245,3 +245,27 @@ Not verified: on a phone; Apple Health writing a back-dated entry (code read: no
   the reset after an hour away / on another day in a UI test (unit-tested rule; the scenePhase hook by code read)
 Known flaky: none seen
 ```
+
+### Codex round 1 — not clear (2 × P2)
+
+Report: [`../codex-review-n16.md`](../codex-review-n16.md) (Codex agent `7b92d3ab-d32a-42b6-b01f-fb648a6e8100`; it
+reran Unit 1344/1344 and `TodayPickDayUITests` 6/6, plus a calendar probe — Monday-first weeks, year rollover, DST).
+
+1. **P2 — a failed scan card's Retake and Manual Add used the last pill tap's day, not the scan's.** Fix:
+   `TodayView` sets `logDay = scan.pickedDay` before either (nil — today — for a scan not sent from a picked day, as
+   before). Regression: `TodayPickDayUITests.testAFailedScansManualAddGoesToItsDay` (a failed scan from a picked day,
+   a Log food visit from today in between, Manual Add on the card → the entry is on the scan's day, none on today).
+2. **P2 — a picked-day label from an old library photo back-dated `createdAt` and "last used" to the photo.** Fix:
+   `FoodLogDay.labelTimes` — created now; eaten = the picked day at the meal's time, else the photo's own time
+   (D83(9)) — used by `LabelFoodView.log`. This also stops back-dating `createdAt` / "last used" for a library label
+   without a pick (it was the photo's time before N16). Regression: `TodayDayPickTests.anOldLabelPhotoOnAPickedDayIsCreatedNow`
+   (Save to My foods on and off).
+
+Verification of the fixes:
+
+```
+Verified: Unit plan — 1345/1345, exit 0, build/results/n16b-unit.xcresult
+Verified: TodayPickDayUITests 7/7 + ScanFoodUITests 15/15 — 22/22, exit 0, build/results/n16b-ui.xcresult
+Not verified: as before (phone, Health on device, the hour-away reset in a UI test)
+Known flaky: none seen
+```
