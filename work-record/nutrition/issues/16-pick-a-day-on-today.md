@@ -1,7 +1,7 @@
 # N16 — Pick a day on Today: see it and log food to it
 
 Type: feature
-Status: **built — in Codex review** (2026-11-20; the user approved the prototype without the Back to Today strip)
+Status: **done — Codex clear (round 2), merged into `main`** (2026-11-20); branch `ericlee4992/today-pick-day` kept. Not yet in TestFlight; no stored-format change (no Gate S).
 Implementer: Claude; Reviewer: Codex (a Paseo Codex agent in this workspace), to "clear".
 Branch: `ericlee4992/today-pick-day` off `main` `cb364043` (Paseo worktree `~/.paseo/worktrees/1qmeipq9/today-pick-day`).
 Decision: **D92** (approved 2026-11-20). Builds on D68 (Today), D70 (dated goals), D77 (Up next), N5 (Today's food), N10 (a day's
@@ -269,3 +269,14 @@ Verified: TodayPickDayUITests 7/7 + ScanFoodUITests 15/15 — 22/22, exit 0, bui
 Not verified: as before (phone, Health on device, the hour-away reset in a UI test)
 Known flaky: none seen
 ```
+
+### Codex round 2 — clear
+
+Report: [`../codex-review-n16b.md`](../codex-review-n16b.md). Both round-1 findings resolved; no new findings. Codex
+reran: build-for-testing exit 0; `TodayDayPickTests` + `FoodScanTests` + `FoodLogTests` 51/51, exit 0;
+`TodayPickDayUITests` + `ScanFoodUITests` 22/22, exit 0; it judged the unpicked library label's created-now change
+consistent with D83(9) and D92 (no new decision needed). Noted, not a finding: no dedicated UI test completes a Retake
+after an intervening visit (the same one-line assignment as Manual Add, which is tested).
+
+Merged into `main` with `git merge --ff-only` (2026-11-20).
+

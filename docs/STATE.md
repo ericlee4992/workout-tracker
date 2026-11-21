@@ -1,19 +1,18 @@
 # Current project state
 
-Updated **2026-11-20: N16 pick a day on Today — built (prototype approved without the Back to Today strip), tests running then Codex review (branch `ericlee4992/today-pick-day`, worktree `~/.paseo/worktrees/1qmeipq9/today-pick-day`; D92). Earlier: the prompt audit fixes merged (agent-skills 04); `scripts/sim-ui.sh` (agent-skills 03); [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) (My settings) uploaded 2026-11-18 — Gate S on the phone before it installs build 17.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-20: N16 pick a day on Today — done, Codex clear (round 2), merged into `main` (D92; not yet in TestFlight; no stored-format change). Earlier: the prompt audit fixes merged (agent-skills 04); `scripts/sim-ui.sh` (agent-skills 03); [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) (My settings) uploaded 2026-11-18 — Gate S on the phone before it installs build 17.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-20)
 
-- **NOW (resume here) — [N16, pick a day on Today](../work-record/nutrition/issues/16-pick-a-day-on-today.md): built,
-  in Codex review round 2** (round 1: 2 × P2, fixed; ask 2026-11-20; the user approved the prototype minus the Back to Today strip — today's
-  ring goes back; D92 approved). Branch `ericlee4992/today-pick-day` off `main` `cb364043` (reviewed tip `8ea159df`),
-  Paseo worktree `~/.paseo/worktrees/1qmeipq9/today-pick-day`; not merged. Prototype at tag
-  `design/today-pick-day-prototype`. **No stored-format change** (no migration, no Gate S). **Verified:** Unit plan
-  1344/1344 (`build/results/n16-unitplan.xcresult`), TodayTrain plan 86/86 (`build/results/n16-todaytrain.xcresult`).
-  **Codex:** agent `7b92d3ab-d32a-42b6-b01f-fb648a6e8100` (this workspace), briefs
-  `work-record/nutrition/codex-review-n16{,b}-prompt.md` → reports `codex-review-n16{,b}.md`. **Next:** round 2's verdict →
-  merge `--ff-only` into `main`. `scripts/sim-ui.sh` taps did nothing this session (snapshots fine) — in the ticket.
+- **NOW (resume here) — [N16, pick a day on Today](../work-record/nutrition/issues/16-pick-a-day-on-today.md): done,
+  merged into `main` 2026-11-20** (D92; Codex clear round 2, agent `7b92d3ab-d32a-42b6-b01f-fb648a6e8100`; branch
+  `ericlee4992/today-pick-day` kept; prototype at tag `design/today-pick-day-prototype`). Tap a ring → Today turns into
+  that day; Log food and the camera log to it at the meal's time; today's ring goes back; ‹ › / swipe for earlier weeks.
+  **Verified:** Unit plan 1345/1345, TodayTrain plan 86/86 (before the round-1 fixes), the fixes' UI classes 22/22.
+  **No stored-format change** — it can ship in the next TestFlight build without its own Gate S (build 17's Gate S is
+  still pending). **Next (the user's call):** ship it in a TestFlight build; then archive this Paseo workspace and its
+  Codex agent (branch kept). `scripts/sim-ui.sh` taps did nothing this session (snapshots fine) — worth a look.
 - **Pending — [0.2.0 (17)](../work-record/release/0.2.0-build-17.md) uploaded 2026-11-18 01:17 EST** (`main` `8812bfda`; machine-settings 01 My settings, D91; no What's New; the user's What to Test note; no server change; Codex release review clear, Unit 1329/1329). **Stored-format change (`016aa14c…`): Gate S on the phone before installing.** **The user's steps:** processing → Developer → Gate S (with Claude) → install → try My settings → Friends with the What to Test note → Submit.
 - **Done 2026-11-19 — [agent-skills 04, prompt audit fixes](../work-record/agent-skills/issues/04-prompt-audit-fixes.md)**
   (Codex clear; merged). Left for the user to decide: the 10 project skill copies that differ from the
